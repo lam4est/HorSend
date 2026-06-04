@@ -1,0 +1,85 @@
+{
+  "counters": { "workflowUser": 1, "stepUser": 1 },
+  "workflowTemplates": [
+    {
+      "id": 1,
+      "name": "Welcome series",
+      "category": "onboarding",
+      "description": "Email and SMS welcome journey for new contacts.",
+      "steps": [
+        { "id": 101, "step_order": 1, "channel": "email", "delay_in_minutes": 0 },
+        { "id": 102, "step_order": 2, "channel": "sms", "delay_in_minutes": 1440 }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Abandoned cart",
+      "category": "abandoned_basket",
+      "description": "Remind shoppers who left items in cart.",
+      "steps": [
+        { "id": 201, "step_order": 1, "channel": "email", "delay_in_minutes": 60 },
+        { "id": 202, "step_order": 2, "channel": "sms", "delay_in_minutes": 2880 }
+      ]
+    }
+  ],
+  "workflowUsers": [
+    { "user_id": 1, "workflow_id": 1, "is_active": true },
+    { "user_id": 1, "workflow_id": 2, "is_active": false }
+  ],
+  "schedulerEvents": [
+    { "id": 1, "month": 1, "day": 1, "title": "New Year's Day", "description": "" },
+    { "id": 2, "month": 1, "day": 10, "title": "Winter Sales", "description": "" },
+    { "id": 3, "month": 1, "day": 20, "title": "Winter Sales", "description": "" },
+    { "id": 4, "month": 2, "day": 13, "title": "Mardi Gras", "description": "" },
+    { "id": 5, "month": 2, "day": 14, "title": "Valentine's Day", "description": "" },
+    { "id": 6, "month": 2, "day": 8, "title": "Women's Day", "description": "" },
+    { "id": 7, "month": 3, "day": 17, "title": "St. Patrick's Day", "description": "" },
+    { "id": 8, "month": 3, "day": 20, "title": "Spring", "description": "" },
+    { "id": 9, "month": 3, "day": 31, "title": "Easter Monday", "description": "" },
+    { "id": 10, "month": 4, "day": 1, "title": "April Fools", "description": "" },
+    { "id": 11, "month": 4, "day": 15, "title": "Spring Sales", "description": "" },
+    { "id": 12, "month": 4, "day": 22, "title": "Earth Day", "description": "" },
+    { "id": 13, "month": 5, "day": 1, "title": "Labor Day", "description": "" },
+    { "id": 14, "month": 5, "day": 8, "title": "Mother's Day", "description": "" },
+    { "id": 15, "month": 5, "day": 25, "title": "Spring Clearance", "description": "" },
+    { "id": 16, "month": 6, "day": 1, "title": "Summer Kickoff", "description": "" },
+    { "id": 17, "month": 6, "day": 15, "title": "Father's Day", "description": "" },
+    { "id": 18, "month": 6, "day": 21, "title": "Summer Solstice", "description": "" },
+    { "id": 19, "month": 7, "day": 4, "title": "Summer Sales", "description": "" },
+    { "id": 20, "month": 7, "day": 14, "title": "Bastille Day", "description": "" },
+    { "id": 21, "month": 7, "day": 30, "title": "Mid-Summer", "description": "" },
+    { "id": 22, "month": 8, "day": 15, "title": "Summer Promo", "description": "" },
+    { "id": 23, "month": 8, "day": 20, "title": "Back to School", "description": "" },
+    { "id": 24, "month": 8, "day": 31, "title": "End of Summer", "description": "" },
+    { "id": 25, "month": 9, "day": 1, "title": "Fall Launch", "description": "" },
+    { "id": 26, "month": 9, "day": 15, "title": "Mid-Autumn", "description": "" },
+    { "id": 27, "month": 9, "day": 22, "title": "Autumn Equinox", "description": "" },
+    { "id": 28, "month": 10, "day": 1, "title": "Halloween Prep", "description": "" },
+    { "id": 29, "month": 10, "day": 31, "title": "Halloween", "description": "" },
+    { "id": 30, "month": 10, "day": 20, "title": "Fall Sales", "description": "" },
+    { "id": 31, "month": 11, "day": 1, "title": "Black Friday Prep", "description": "" },
+    { "id": 32, "month": 11, "day": 28, "title": "Black Friday", "description": "" },
+    { "id": 33, "month": 11, "day": 30, "title": "Cyber Monday", "description": "" },
+    { "id": 34, "month": 12, "day": 6, "title": "St. Nicholas", "description": "" },
+    { "id": 35, "month": 12, "day": 24, "title": "Christmas Eve", "description": "" },
+    { "id": 36, "month": 12, "day": 31, "title": "New Year's Eve", "description": "" }
+  ],
+  "schedulerSubscriptions": [
+    {
+      "user_id": 1,
+      "scheduler_event_id": 1,
+      "is_enabled": true,
+      "channel": "sms",
+      "template_id": "sms-welcome",
+      "contacts_count": 2500
+    },
+    {
+      "user_id": 1,
+      "scheduler_event_id": 32,
+      "is_enabled": true,
+      "channel": "email",
+      "template_id": "email-cart",
+      "contacts_count": 2500
+    }
+  ]
+}

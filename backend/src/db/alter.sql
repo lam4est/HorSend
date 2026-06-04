@@ -1,0 +1,9 @@
+ALTER TABLE workflow_users ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE workflow_users ADD COLUMN IF NOT EXISTS segment_id INTEGER;
+
+ALTER TABLE scheduler_subscriptions ADD COLUMN IF NOT EXISTS channel TEXT NOT NULL DEFAULT 'sms';
+ALTER TABLE scheduler_subscriptions ADD COLUMN IF NOT EXISTS template_id TEXT;
+ALTER TABLE scheduler_subscriptions ADD COLUMN IF NOT EXISTS hour INTEGER NOT NULL DEFAULT 9;
+ALTER TABLE scheduler_subscriptions ADD COLUMN IF NOT EXISTS minute INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE scheduler_subscriptions ADD COLUMN IF NOT EXISTS days_before INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE scheduler_subscriptions ADD COLUMN IF NOT EXISTS contacts_count INTEGER NOT NULL DEFAULT 0;

@@ -1,0 +1,41 @@
+# Dependencies & build
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Environment & secrets (never commit)
+.env
+.env.*
+!.env.example
+
+# Keys & credentials
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+*.crt
+secrets/
+credentials.json
+service-account*.json
+
+# Local runtime / IDE
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# App-local data (may contain user data)
+backend/data/store.json
+
+# Docker / DB volumes
+postgres_data/
+
+# Optional local overrides (often contain secrets)
+docker-compose.override.yml
+docker-compose.local.yml
