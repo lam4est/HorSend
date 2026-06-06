@@ -242,8 +242,7 @@ export default function WorkflowEditModal ({
                   </div>
                   {!data.useAllContacts ? (
                     <select
-                      className="form-control"
-                      style={{ marginTop: 8 }}
+                      className="form-control workflow-edit-modal__contact-select"
                       value={data.contactListId ?? ''}
                       onChange={(e) =>
                         updateData({

@@ -1,3 +1,5 @@
+import BrandLogo from './BrandLogo'
+
 type CrmTopNavProps = {
   pageTitle: string
   availableCredit?: string
@@ -12,15 +14,7 @@ export default function CrmTopNav ({
   return (
     <header className="crm-top-nav" role="banner">
       <div className="crm-top-nav__left">
-        <div className="brand" aria-label="Octopush">
-          <div className="brand__icon-wrap" aria-hidden="true">
-            <i className="fa-solid fa-robot brand__icon" />
-          </div>
-          <div className="brand__col">
-            <span className="brand__name">Octopush</span>
-            <span className="brand__badge">Pro</span>
-          </div>
-        </div>
+        <BrandLogo />
         <h1 className="page-title">{pageTitle}</h1>
       </div>
 
@@ -29,8 +23,8 @@ export default function CrmTopNav ({
           <div className="credit-pill" title="SMS credit balance">
             <i className="fa-solid fa-wallet credit-pill__icon" aria-hidden="true" />
             <span className="credit-pill__text">Available credit : {availableCredit} SMS</span>
-            <span className="credit-pill__flag" aria-hidden="true">
-              🇫🇷
+            <span className="credit-pill__flag" aria-label="France" title="France">
+              FR
             </span>
           </div>
           <button type="button" className="btn-create" onClick={onCreateCampaign}>

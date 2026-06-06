@@ -3,15 +3,16 @@
 }
 
 .campaign-auto-scheduler .page-title {
-  font-size: 28px;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 8px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin: 0 0 6px;
 }
 
 .campaign-auto-scheduler .page-subtitle {
-  font-size: 15px;
-  color: #6b7280;
+  font-size: 14px;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -39,19 +40,24 @@
 }
 
 .month-section {
-  background: white;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-1);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
   overflow: hidden;
   height: 100%;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--duration-normal) var(--ease-out);
+}
+
+.month-section:hover {
+  box-shadow: var(--shadow-sm);
 }
 
 .month-header {
-  background: #00a676;
-  padding: 11px 14px;
+  background: var(--brand-700);
+  padding: 10px 14px;
   flex-shrink: 0;
 }
 
@@ -69,16 +75,18 @@
   padding: 10px;
   flex: 1;
   overflow-y: auto;
-  background: #fafafa;
+  background: var(--surface-inset);
 }
 
 .event-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 10px 12px;
   margin-bottom: 8px;
-  transition: box-shadow 0.2s ease;
+  transition:
+    box-shadow var(--duration-normal) var(--ease-out),
+    border-color var(--duration-normal) var(--ease-out);
 }
 
 .event-card:last-child {
@@ -86,7 +94,8 @@
 }
 
 .event-card:hover {
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-xs);
+  border-color: var(--border-default);
 }
 
 .event-card.event-inactive .event-name {
@@ -119,9 +128,11 @@
 }
 
 .event-day {
-  color: #00a676;
+  color: var(--brand-700);
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
 
@@ -167,8 +178,8 @@
 }
 
 .action-btn:hover:not(.disabled) {
-  background: #f3f4f6;
-  color: #00a676;
+  background: var(--brand-50);
+  color: var(--brand-700);
 }
 
 .action-btn.disabled {
@@ -182,10 +193,11 @@
 }
 
 .roi-calculator-section {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-1);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-subtle);
   padding: 24px;
+  box-shadow: var(--shadow-xs);
 }
 
 .calculator-header {
@@ -240,11 +252,13 @@
 .total-stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
 .total-stat-value--accent {
-  color: #009d6b;
+  color: var(--brand-700);
 }
 
 .conversion-inputs .input-row {
@@ -288,7 +302,7 @@
 }
 
 .result-value.highlight {
-  color: #009d6b;
+  color: var(--brand-700);
 }
 
 .result-value.roi-value {

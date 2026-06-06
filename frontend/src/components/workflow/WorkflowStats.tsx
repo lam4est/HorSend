@@ -1,3 +1,4 @@
+import { useGsapReveal } from '../../hooks/useGsapReveal'
 import { t } from '../../i18n/en'
 
 type WorkflowStatsProps = {
@@ -8,27 +9,46 @@ type WorkflowStatsProps = {
 }
 
 export default function WorkflowStats (props: WorkflowStatsProps) {
-  const items = [
-    { key: 'stat-total-workflows', value: props.totalWorkflows, label: t('campaign_workflow.stats.total_workflows') },
-    { key: 'stat-active', value: props.activeWorkflows, label: t('campaign_workflow.stats.active') },
-    { key: 'stat-total-steps', value: props.totalSteps, label: t('campaign_workflow.stats.total_steps') },
-    { key: 'stat-categories', value: props.totalCategories, label: t('campaign_workflow.stats.categories') }
+  const ref = useGsapReveal<HTMLDivElement>()
+
+  const cells = [
+    {
+      key: 'featured',
+      value: props.totalWorkflows,
+      label: t('campaign_workflow.stats.total_workflows'),
+      span: 'bento-featured'
+    },
+    {
+      key: 'active',
+      value: props.activeWorkflows,
+      label: t('campaign_workflow.stats.active'),
+      span: 'bento-sm'
+    },
+    {
+      key: 'steps',
+      value: props.totalSteps,
+      label: t('campaign_workflow.stats.total_steps'),
+      span: 'bento-sm'
+    },
+    {
+      key: 'categories',
+      value: props.totalCategories,
+      label: t('campaign_workflow.stats.categories'),
+      span: 'bento-wide'
+    }
   ]
 
   return (
-    <div className="workflow-stats">
-      {items.map((item) => (
-        <div key={item.key} className={`stat-item ${item.key}`}>
-          <span className="stat-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-          </span>
-          <div className="stat-content">
-            <span className="stat-number">{item.value}</span>
-            <span className="stat-label">{item.label}</span>
-          </div>
-        </div>
+    <div ref={ref} className="workflow-bento" aria-label="Workflow statistics">
+      {cells.map((cell) => (
+        <article
+          key={cell.key}
+          data-reveal
+          className={`bento-cell ${cell.span}`}
+        >
+          <span className="bento-cell__value tabular-nums">{cell.value}</span>
+          <span className="bento-cell__label">{cell.label}</span>
+        </article>
       ))}
     </div>
   )

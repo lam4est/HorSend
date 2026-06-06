@@ -1,0 +1,66 @@
+:root {
+  /* Brand — Horsend blue palette */
+  --brand-50: #bde8f5;
+  --brand-100: #d4f1fa;
+  --brand-200: #9dd4ef;
+  --brand-300: #73b8de;
+  --brand-500: #4988c4;
+  --brand-600: #4988c4;
+  --brand-700: #1c4d8d;
+  --brand-800: #0f2854;
+  --brand-900: #0a1d3d;
+  --brand-focus-ring: rgba(73, 136, 196, 0.22);
+
+  /* Cool zinc neutrals — one gray family */
+  --surface-0: #fafafa;
+  --surface-1: #ffffff;
+  --surface-2: #f4f4f5;
+  --surface-3: #e4e4e7;
+  --surface-inset: #fafafa;
+
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #71717a;
+  --text-inverse: #ffffff;
+
+  --border-subtle: #e4e4e7;
+  --border-default: #d4d4d8;
+  --border-strong: #a1a1aa;
+
+  --shadow-xs: 0 1px 2px rgba(24, 24, 27, 0.04);
+  --shadow-sm: 0 1px 3px rgba(24, 24, 27, 0.06), 0 1px 2px rgba(24, 24, 27, 0.04);
+  --shadow-md: 0 4px 12px rgba(24, 24, 27, 0.06), 0 2px 4px rgba(24, 24, 27, 0.04);
+  --shadow-lg: 0 12px 32px rgba(24, 24, 27, 0.08), 0 4px 8px rgba(24, 24, 27, 0.04);
+
+  /* Semantic */
+  --success: #059669;
+  --success-soft: #ecfdf5;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --warning-soft: #fffbeb;
+  --info: #4988c4;
+
+  /* Layout */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  --nav-height: 56px;
+  --sidebar-width: 240px;
+
+  --font-sans: 'Cabinet Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 220ms;
+
+  --z-sticky: 10;
+  --z-sidebar: 20;
+  --z-backdrop: 180;
+  --z-drawer: 190;
+  --z-topnav: 200;
+  --z-modal: 300;
+}

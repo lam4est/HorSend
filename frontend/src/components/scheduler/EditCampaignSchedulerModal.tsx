@@ -34,7 +34,7 @@ export default function EditCampaignSchedulerModal ({
   onClose,
   onSaved
 }: EditCampaignSchedulerModalProps) {
-  const [channel, setChannel] = useState(CHANNELS.SMS)
+  const [channel, setChannel] = useState<string>(CHANNELS.SMS)
   const [templateId, setTemplateId] = useState<string | null>(null)
   const [useAllContacts, setUseAllContacts] = useState(true)
   const [contactListId, setContactListId] = useState<number | null>(null)

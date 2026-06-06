@@ -7,8 +7,9 @@ import WorkflowFilters, { type WorkflowFiltersState } from './WorkflowFilters'
 import { buildWorkflowSavePayload } from './WorkflowEditModal'
 import WorkflowGrid from './WorkflowGrid'
 import type { WorkflowEditData } from './WorkflowEditModal'
+import ChannelMarquee from '../common/ChannelMarquee'
 import WorkflowHeader from './WorkflowHeader'
-import WorkflowHeroIllustration from './WorkflowHeroIllustration'
+import WorkflowHero from './WorkflowHero'
 import WorkflowStats from './WorkflowStats'
 
 type WorkflowListProps = {
@@ -105,18 +106,10 @@ export default function WorkflowList ({ enrollSignal = 0 }: WorkflowListProps) {
 
   return (
     <div className="workflow-list">
-      <div className="workflow-list__hero">
-        <div className="workflow-list__hero-text">
-          <h1 className="workflow-list__title">{t('campaign_workflow.page_title')}</h1>
-          <p className="workflow-list__lead">{t('campaign_workflow.page_lead')}</p>
-          <button type="button" className="workflow-list__add-btn" onClick={openEnrollModal}>
-            <i className="fas fa-plus" aria-hidden="true" />
-            {t('campaign_workflow.add_workflow_campaign')}
-          </button>
-        </div>
-        <WorkflowHeroIllustration />
-      </div>
+      <WorkflowHero onAdd={openEnrollModal} />
+      <ChannelMarquee />
 
+      <section className="workflow-section workflow-section--interest">
       {loadError ? (
         <ApiAlert
           variant="error"
@@ -136,7 +129,9 @@ export default function WorkflowList ({ enrollSignal = 0 }: WorkflowListProps) {
       <WorkflowStats {...stats} />
       <WorkflowFilters value={filters} onChange={setFilters} />
       <WorkflowHeader filteredCount={filtered.length} total={workflows.length} />
+      </section>
 
+      <section className="workflow-section workflow-section--action">
       {loading ? (
         <p className="workflow-list__status">{t('global.loading')}</p>
       ) : !loadError && filtered.length === 0 ? (
@@ -164,6 +159,7 @@ export default function WorkflowList ({ enrollSignal = 0 }: WorkflowListProps) {
           }}
         />
       )}
+      </section>
 
       <Modal
         open={enrollOpen}

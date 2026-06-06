@@ -1,7 +1,5 @@
 import { t } from '../../i18n/en'
 
-export type WorkflowFiltersState = { search: string; category: string }
-
 const CATEGORIES = [
   'activation',
   'qualification',
@@ -12,6 +10,8 @@ const CATEGORIES = [
   'onboarding',
   'retention'
 ] as const
+
+export type WorkflowFiltersState = { search: string; category: string }
 
 type WorkflowFiltersProps = {
   value: WorkflowFiltersState
@@ -31,20 +31,26 @@ export default function WorkflowFilters ({ value, onChange }: WorkflowFiltersPro
           onChange={(e) => onChange({ ...value, search: e.target.value })}
         />
       </div>
-      <div className="category-filter">
-        <select
-          className="form-select"
-          value={value.category}
-          onChange={(e) => onChange({ ...value, category: e.target.value })}
+      <div className="category-accordion" role="group" aria-label={t('campaign_workflow.all_categories')}>
+        <button
+          type="button"
+          className={`category-accordion__slice${value.category === '' ? ' is-active' : ''}`}
+          onClick={() => onChange({ ...value, category: '' })}
         >
-          <option value="">{t('campaign_workflow.all_categories')}</option>
-          {CATEGORIES.map((key) => (
-            <option key={key} value={key}>
+          <span className="category-accordion__label">{t('campaign_workflow.all_categories')}</span>
+        </button>
+        {CATEGORIES.map((key) => (
+          <button
+            key={key}
+            type="button"
+            className={`category-accordion__slice category-accordion__slice--${key}${value.category === key ? ' is-active' : ''}`}
+            onClick={() => onChange({ ...value, category: key })}
+          >
+            <span className="category-accordion__label">
               {t(`campaign_workflow.categories.${key}`)}
-            </option>
-          ))}
-        </select>
-        <i className="fas fa-chevron-down" aria-hidden="true" />
+            </span>
+          </button>
+        ))}
       </div>
     </div>
   )

@@ -1,0 +1,27 @@
+import { useGsapHeroImage } from '../../hooks/useGsapReveal'
+import { t } from '../../i18n/en'
+
+const HERO_IMAGE = 'https://picsum.photos/seed/campaign-calendar-events/800/600'
+
+export default function SchedulerHero () {
+  const sectionRef = useGsapHeroImage('.scheduler-hero__img')
+
+  return (
+    <section ref={sectionRef} className="scheduler-hero scheduler-hero--split">
+      <div className="scheduler-hero__text">
+        <h1 className="scheduler-hero__title">{t('campaign_auto_scheduler.page_header')}</h1>
+        <p className="scheduler-hero__subtitle">{t('campaign_auto_scheduler.page_subtitle')}</p>
+      </div>
+      <div className="scheduler-hero__media">
+        <img
+          className="scheduler-hero__img"
+          src={HERO_IMAGE}
+          alt=""
+          width={420}
+          height={315}
+          loading="eager"
+        />
+      </div>
+    </section>
+  )
+}

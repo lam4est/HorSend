@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { t } from '../../i18n/en'
+import { useGsapPinSplit, useGsapReveal } from '../../hooks/useGsapReveal'
 import ApiAlert from '../common/ApiAlert'
+import ChannelMarquee from '../common/ChannelMarquee'
 import {
   buildSchedulerCalendar,
   type SchedulerEventView,
@@ -12,8 +14,11 @@ import EditCampaignSchedulerModal, {
 } from './EditCampaignSchedulerModal'
 import MonthSection from './MonthSection'
 import RoiCalculatorSection from './RoiCalculatorSection'
+import SchedulerHero from './SchedulerHero'
 
 export default function CampaignAutoScheduler () {
+  const pinRef = useGsapPinSplit('.scheduler-pin__aside', '.scheduler-pin__scroll')
+  const roiRef = useGsapReveal<HTMLElement>()
   const [calendar, setCalendar] = useState<SchedulerMonthView[]>([])
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -119,10 +124,8 @@ export default function CampaignAutoScheduler () {
 
   return (
     <div className="campaign-auto-scheduler">
-      <div className="page-header-section">
-        <h1 className="page-title">{t('campaign_auto_scheduler.page_header')}</h1>
-        <p className="page-subtitle">{t('campaign_auto_scheduler.page_subtitle')}</p>
-      </div>
+      <SchedulerHero />
+      <ChannelMarquee />
 
       {apiWarning ? (
         <ApiAlert
@@ -140,23 +143,33 @@ export default function CampaignAutoScheduler () {
         <p className="workflow-list__status">{t('global.loading')}</p>
       ) : null}
 
-      <div className="campaign-calendar">
-        <div className="month-cells-grid">
-          {calendar.map((month) => (
-            <div key={month.month_key} className="month-cell">
-              <MonthSection
-                month={month}
-                onEdit={handleEdit}
-                onToggle={(ev, enabled) => {
-                  if (!busy) void handleToggle(ev, enabled)
-                }}
-              />
+      <section ref={pinRef} className="scheduler-pin workflow-section workflow-section--desire">
+        <aside className="scheduler-pin__aside">
+          <h2 className="scheduler-pin__title">{t('campaign_auto_scheduler.calendar_pin_title')}</h2>
+          <p className="scheduler-pin__lead">{t('campaign_auto_scheduler.calendar_pin_lead')}</p>
+        </aside>
+        <div className="scheduler-pin__scroll">
+          <div className="campaign-calendar">
+            <div className="month-cells-grid">
+              {calendar.map((month) => (
+                <div key={month.month_key} className="month-cell">
+                  <MonthSection
+                    month={month}
+                    onEdit={handleEdit}
+                    onToggle={(ev, enabled) => {
+                      if (!busy) void handleToggle(ev, enabled)
+                    }}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
-      </div>
+      </section>
 
-      <RoiCalculatorSection activeEvents={activeEvents} />
+      <section ref={roiRef} className="workflow-section workflow-section--action">
+        <RoiCalculatorSection activeEvents={activeEvents} />
+      </section>
 
       <EditCampaignSchedulerModal
         open={editEvent != null}

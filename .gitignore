@@ -20,6 +20,9 @@ secrets/
 credentials.json
 service-account*.json
 
+# CodeGraph (local index — recreated by `codegraph init` on each machine)
+.codegraph/
+
 # Local runtime / IDE
 *.log
 npm-debug.log*

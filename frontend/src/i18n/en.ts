@@ -22,6 +22,9 @@ export const en = {
   },
   campaign_workflow: {
     page_title: 'Automation Workflows',
+    hero_title_before: 'Automate ',
+    hero_title_after: ' customer journeys',
+    hero_secondary_cta: 'View metrics',
     page_lead:
       'Activate, nurture, and retain customers with Email, SMS, RCS, and Voice journeys.',
     page_subtitle: 'Showing {count} / {total} workflows',
@@ -99,6 +102,8 @@ export const en = {
     }
   },
   campaign_auto_scheduler: {
+    calendar_pin_title: 'Year-round calendar',
+    calendar_pin_lead: 'Toggle events and tune channels as seasons shift.',
     edit: 'Edit',
     page_header: 'Campaign Auto Scheduler',
     page_subtitle: 'Plan and activate your campaigns for the key events of the year.',

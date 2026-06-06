@@ -172,7 +172,7 @@ export default function WorkflowStepItem ({
                       onFieldsChange()
                     }}
                   />
-                  <small style={{ color: '#6b7280' }}>
+                  <small className="workflow-step-item__hint">
                     {t('campaign_workflow.edit_modal.sms_sender_id_hint')}
                   </small>
                 </div>
@@ -232,9 +232,7 @@ export default function WorkflowStepItem ({
             <div className="workflow-step-item__preview-section">
               {selected ? (
                 <div className="workflow-step-item__preview">
-                  <p style={{ margin: 0, fontSize: 14, color: '#374151' }}>
-                    {selected.body?.replace(/<[^>]+>/g, ' ') || selected.title}
-                  </p>
+                  <p>{selected.body?.replace(/<[^>]+>/g, ' ') || selected.title}</p>
                 </div>
               ) : (
                 <div className="workflow-step-item__preview-placeholder">

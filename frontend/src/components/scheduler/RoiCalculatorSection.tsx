@@ -66,7 +66,7 @@ export default function RoiCalculatorSection ({ activeEvents }: RoiCalculatorSec
   }, [channelStats, conversionRates, averageBasket, totalCost])
 
   return (
-    <div className="roi-calculator-section">
+    <div className="roi-calculator-section" data-reveal>
       <div className="calculator-header">
         <i className="fa fa-calculator calculator-header-icon" aria-hidden="true" />
         <h5 className="calculator-header-title">{t('campaign_auto_scheduler.roi_calculator.title')}</h5>

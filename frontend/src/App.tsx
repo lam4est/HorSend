@@ -95,7 +95,7 @@ export default function App () {
             </div>
           </header>
 
-          <main className="app-content">
+          <main className="app-content app-content--motion">
             {activeTab === 'workflow' ? (
               <WorkflowList enrollSignal={enrollSignal} />
             ) : (

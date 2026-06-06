@@ -38,24 +38,22 @@ export default function AdminSidebar ({
       >
         <div className="sidebar-inner">
           <div className="sidebar-pills">
-            <button type="button" className="pill pill--navy" onClick={() => navigate('new-campaign')}>
-              <i className="fa-solid fa-mobile-screen-button pill__icon" aria-hidden="true" />
+            <button type="button" className="pill pill--primary" onClick={() => navigate('new-campaign')}>
+              <i className="fa-solid fa-plus pill__icon" aria-hidden="true" />
               <span className="pill__text">New campaign</span>
               <i className="fa-solid fa-chevron-right pill__arrow" aria-hidden="true" />
             </button>
-            <button type="button" className="pill pill--blue" onClick={() => navigate('contacts')}>
+            <button type="button" className="pill pill--ghost" onClick={() => navigate('contacts')}>
               <i className="fa-solid fa-address-book pill__icon" aria-hidden="true" />
               <span className="pill__text">Contacts</span>
-              <i className="fa-solid fa-chevron-right pill__arrow" aria-hidden="true" />
             </button>
-            <button type="button" className="pill pill--gradient" onClick={() => navigate('conversations')}>
+            <button type="button" className="pill pill--ghost" onClick={() => navigate('conversations')}>
               <i className="fa-solid fa-comments pill__icon" aria-hidden="true" />
               <span className="pill__text">Conversations</span>
             </button>
-            <button type="button" className="pill pill--green" onClick={() => navigate('order')}>
+            <button type="button" className="pill pill--ghost" onClick={() => navigate('order')}>
               <i className="fa-solid fa-cart-shopping pill__icon" aria-hidden="true" />
               <span className="pill__text">Order</span>
-              <i className="fa-solid fa-chevron-right pill__arrow" aria-hidden="true" />
             </button>
           </div>
 
