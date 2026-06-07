@@ -6,7 +6,7 @@ type WorkflowHeroProps = {
 }
 
 const HERO_IMAGE =
-  'https://picsum.photos/seed/campaign-workflow-automation/960/720'
+  'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=960&h=720&fit=crop&q=80'
 
 export default function WorkflowHero ({ onAdd }: WorkflowHeroProps) {
   const sectionRef = useGsapHeroImage('.workflow-hero__visual-img')
@@ -25,7 +25,7 @@ export default function WorkflowHero ({ onAdd }: WorkflowHeroProps) {
             className="workflow-hero__inline-img"
             style={{ backgroundImage: `url(${HERO_IMAGE})` }}
             role="img"
-            aria-label="Campaign automation"
+            aria-label="Campaign workflow analytics"
           />
           {t('campaign_workflow.hero_title_after')}
         </h1>
@@ -49,7 +49,7 @@ export default function WorkflowHero ({ onAdd }: WorkflowHeroProps) {
         <img
           className="workflow-hero__visual-img"
           src={HERO_IMAGE}
-          alt=""
+          alt="Campaign workflow analytics dashboard"
           width={480}
           height={360}
           loading="eager"

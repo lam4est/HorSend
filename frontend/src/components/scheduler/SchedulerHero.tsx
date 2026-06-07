@@ -1,7 +1,8 @@
 import { useGsapHeroImage } from '../../hooks/useGsapReveal'
 import { t } from '../../i18n/en'
 
-const HERO_IMAGE = 'https://picsum.photos/seed/campaign-calendar-events/800/600'
+const HERO_IMAGE =
+  'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=840&h=630&fit=crop&q=80'
 
 export default function SchedulerHero () {
   const sectionRef = useGsapHeroImage('.scheduler-hero__img')
@@ -16,7 +17,7 @@ export default function SchedulerHero () {
         <img
           className="scheduler-hero__img"
           src={HERO_IMAGE}
-          alt=""
+          alt="Campaign calendar planning"
           width={420}
           height={315}
           loading="eager"
