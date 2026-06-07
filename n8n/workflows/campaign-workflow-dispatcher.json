@@ -1,0 +1,446 @@
+{
+  "name": "Campaign Workflow — Dispatcher (1 phút)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-2440, 320],
+      "id": "manual-trigger",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "campaign-dispatch",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-2440, 120],
+      "id": "webhook-trigger",
+      "name": "Manual Webhook",
+      "webhookId": "campaign-dispatch-manual"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-2440, 520],
+      "id": "schedule-1min",
+      "name": "Every 1 Minute"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "api-url",
+              "name": "api_url",
+              "value": "={{ $env.CAMPAIGN_API_URL || 'http://172.17.0.1:3000' }}",
+              "type": "string"
+            },
+            {
+              "id": "service-key",
+              "name": "service_key",
+              "value": "={{ $env.N8N_CAMPAIGN_SERVICE_KEY || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-2200, 320],
+      "id": "config",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.api_url + '/api/n8n/send-queue/requeue-stale?older_than_minutes=10' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Service-Key",
+              "value": "={{ $('Config').item.json.service_key }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1960, 320],
+      "id": "requeue-stale",
+      "name": "Requeue Stale",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Config').item.json.api_url + '/api/n8n/send-queue/pending' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "500"
+            },
+            {
+              "name": "claim",
+              "value": "true"
+            },
+            {
+              "name": "due_before",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Service-Key",
+              "value": "={{ $('Config').item.json.service_key }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1720, 320],
+      "id": "claim-pending",
+      "name": "Claim Pending Queue",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-items",
+              "leftValue": "={{ $json.items?.length ?? 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-1480, 320],
+      "id": "has-items",
+      "name": "Has Pending Items?"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [-1240, 480],
+      "id": "no-items",
+      "name": "No Pending Items"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [-1240, 240],
+      "id": "split-items",
+      "name": "Split Queue Items"
+    },
+    {
+      "parameters": {
+        "batchSize": 50,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [-1000, 240],
+      "id": "loop-batch",
+      "name": "Loop Queue Batch"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [-760, 80],
+      "id": "all-done",
+      "name": "All Batches Done"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "queue-id",
+              "name": "queue_id",
+              "value": "={{ $json.id }}",
+              "type": "number"
+            },
+            {
+              "id": "user-id",
+              "name": "user_id",
+              "value": "={{ $json.user_id }}",
+              "type": "number"
+            },
+            {
+              "id": "channel",
+              "name": "channel",
+              "value": "={{ $json.channel }}",
+              "type": "string"
+            },
+            {
+              "id": "to",
+              "name": "to",
+              "value": "={{ $json.recipient }}",
+              "type": "string"
+            },
+            {
+              "id": "template-id",
+              "name": "template_id",
+              "value": "={{ $json.template_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender",
+              "name": "sender",
+              "value": "={{ $json.sender ?? 'Octopush' }}",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "={{ $json.message_body }}",
+              "type": "string"
+            },
+            {
+              "id": "subject",
+              "name": "subject",
+              "value": "={{ $json.message_subject ?? '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-760, 320],
+      "id": "prepare-payload",
+      "name": "Prepare Send Payload"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.api_url + '/api/n8n/send' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Service-Key",
+              "value": "={{ $('Config').item.json.service_key }}"
+            },
+            {
+              "name": "X-User-Id",
+              "value": "={{ $json.user_id }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ queue_id: $json.queue_id, user_id: $json.user_id, channel: $json.channel, to: $json.to, template_id: $json.template_id, sender: $json.sender, message: $json.message, subject: $json.subject }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 100,
+              "batchInterval": 10
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-520, 320],
+      "id": "send-message",
+      "name": "Send Message",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.api_url + '/api/n8n/send-queue/' + $('Prepare Send Payload').item.json.queue_id + '/sent' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Service-Key",
+              "value": "={{ $('Config').item.json.service_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ provider_response: $json }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-280, 240],
+      "id": "mark-sent",
+      "name": "Mark Sent",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.api_url + '/api/n8n/send-queue/' + $('Prepare Send Payload').item.json.queue_id + '/failed' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Service-Key",
+              "value": "={{ $('Config').item.json.service_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ error: ($json.error?.message ?? $json.message ?? 'send_failed') }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-280, 400],
+      "id": "mark-failed",
+      "name": "Mark Failed",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [-40, 320],
+      "id": "continue-loop",
+      "name": "Continue Loop"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Manual Webhook": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Every 1 Minute": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "Requeue Stale", "type": "main", "index": 0 }]]
+    },
+    "Requeue Stale": {
+      "main": [[{ "node": "Claim Pending Queue", "type": "main", "index": 0 }]]
+    },
+    "Claim Pending Queue": {
+      "main": [[{ "node": "Has Pending Items?", "type": "main", "index": 0 }]]
+    },
+    "Has Pending Items?": {
+      "main": [
+        [{ "node": "Split Queue Items", "type": "main", "index": 0 }],
+        [{ "node": "No Pending Items", "type": "main", "index": 0 }]
+      ]
+    },
+    "Split Queue Items": {
+      "main": [[{ "node": "Loop Queue Batch", "type": "main", "index": 0 }]]
+    },
+    "Loop Queue Batch": {
+      "main": [
+        [{ "node": "All Batches Done", "type": "main", "index": 0 }],
+        [{ "node": "Prepare Send Payload", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Send Payload": {
+      "main": [[{ "node": "Send Message", "type": "main", "index": 0 }]]
+    },
+    "Send Message": {
+      "main": [
+        [{ "node": "Mark Sent", "type": "main", "index": 0 }],
+        [{ "node": "Mark Failed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mark Sent": {
+      "main": [[{ "node": "Continue Loop", "type": "main", "index": 0 }]]
+    },
+    "Mark Failed": {
+      "main": [[{ "node": "Continue Loop", "type": "main", "index": 0 }]]
+    },
+    "Continue Loop": {
+      "main": [[{ "node": "Loop Queue Batch", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "campaign-workflow" },
+    { "name": "dispatcher" }
+  ]
+}
