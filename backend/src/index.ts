@@ -180,30 +180,9 @@ async function logDatabaseSummary (): Promise<void> {
     )
     return
   }
-  const row = await pool.query<{
-    templates: string
-    events: string
-    enrollments: string
-  }>(
-    `SELECT
-       (SELECT COUNT(*)::text FROM workflow_templates) AS templates,
-       (SELECT COUNT(*)::text FROM scheduler_events) AS events,
-       (SELECT COUNT(*)::text FROM workflow_users WHERE user_id = 1) AS enrollments`
+  console.warn(
+    'PostgreSQL: workflows table missing. Run: pnpm db:migrate && pnpm db:seed'
   )
-  const { templates, events, enrollments } = row.rows[0] ?? {
-    templates: '0',
-    events: '0',
-    enrollments: '0'
-  }
-  if (Number(templates) === 0 || Number(events) === 0) {
-    console.warn(
-      `Demo DB looks empty (templates=${templates}, scheduler_events=${events}). Run: pnpm db:seed`
-    )
-  } else if (Number(enrollments) === 0) {
-    console.warn(
-      'No workflows enrolled for user 1. Run: pnpm db:seed'
-    )
-  }
 }
 
 async function start (): Promise<void> {

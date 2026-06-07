@@ -25,5 +25,5 @@ export async function applyDatabaseSchema (): Promise<void> {
   }
   await pool.query(fs.readFileSync(schemaPath, 'utf8'))
   await pool.query(fs.readFileSync(alterPath, 'utf8'))
-  console.log('PostgreSQL: demo schema applied (workflow_templates, …). Run: pnpm db:seed')
+  console.log('PostgreSQL: schema applied (workflows, scheduler_event, …). Run: pnpm db:seed')
 }
