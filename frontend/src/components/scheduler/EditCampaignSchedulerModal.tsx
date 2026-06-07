@@ -184,20 +184,14 @@ export default function EditCampaignSchedulerModal ({
                 setContactListId(null)
               }}
             >
-              <span className="edit-scheduler-modal__toggle-label">
-                {t('campaign_auto_scheduler.edit_modal.all_contacts')}
-              </span>
-              {useAllContacts ? <i className="fa fa-check edit-scheduler-modal__check" /> : null}
+              {t('campaign_auto_scheduler.edit_modal.all_contacts')}
             </button>
             <button
               type="button"
               className={`edit-scheduler-modal__toggle${!useAllContacts ? ' is-selected' : ''}`}
               onClick={() => setUseAllContacts(false)}
             >
-              <span className="edit-scheduler-modal__toggle-label">
-                {t('campaign_auto_scheduler.edit_modal.my_contact_lists')}
-              </span>
-              {!useAllContacts ? <i className="fa fa-check edit-scheduler-modal__check" /> : null}
+              {t('campaign_auto_scheduler.edit_modal.my_contact_lists')}
             </button>
           </div>
         </div>
