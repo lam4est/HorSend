@@ -70,6 +70,54 @@ Dùng prefix trong message commit, ví dụ: `feat: thêm lọc workflow theo ca
 ## Cấu trúc
 
 ```
-backend/   API Express
+backend/   API Express (+ /api/n8n/* cho n8n)
 frontend/  React
+n8n/       Workflow JSON + SQL queue
 ```
+
+## n8n — kết nối với backend
+
+Backend expose các endpoint dưới `/api/n8n/*` (bảng queue: `workflow_send_queue`).
+
+| Workflow | Cron | Việc làm |
+|----------|------|----------|
+| `n8n/workflows/campaign-workflow-planner.json` | 5 phút | Gọi `POST /api/n8n/planner/run` — backend tính campaign due và ghi queue |
+| `n8n/workflows/campaign-workflow-dispatcher.json` | 1 phút | Claim queue → gửi qua `POST /api/n8n/send` → đánh dấu sent/failed |
+
+### Biến môi trường n8n
+
+Trong container n8n (Settings → Variables hoặc docker env):
+
+| Biến | Ví dụ | Ý nghĩa |
+|------|-------|---------|
+| `CAMPAIGN_API_URL` | `http://host.docker.internal:3000` | URL API backend (port **3000**, không phải 5679) |
+| `N8N_CAMPAIGN_SERVICE_KEY` | `my-secret-key` | Khớp với backend `.env` (tùy chọn khi dev) |
+
+Thêm vào `.env` backend nếu muốn bảo vệ route n8n:
+
+```
+N8N_CAMPAIGN_SERVICE_KEY=my-secret-key
+```
+
+### Import workflow
+
+1. Chạy backend: `pnpm dev` (API port 3000)
+2. Import 2 file JSON từ `n8n/workflows/` vào n8n 2.4.4
+3. Set biến `CAMPAIGN_API_URL` (Linux: thử `http://172.17.0.1:3000` nếu `host.docker.internal` không resolve)
+4. Activate cả 2 workflow
+
+### Kiểm tra end-to-end
+
+```bash
+# Planner (chuẩn bị queue)
+curl -X POST 'http://127.0.0.1:3000/api/n8n/planner/run?window_minutes=5'
+
+# Xem pending
+curl 'http://127.0.0.1:3000/api/n8n/send-queue/pending?limit=10&claim=true'
+
+# Requeue item kẹt processing
+curl -X POST 'http://127.0.0.1:3000/api/n8n/send-queue/requeue-stale?older_than_minutes=10'
+```
+
+Sau khi dispatcher chạy, log backend sẽ in `[n8n send]` (mock sender) và queue chuyển `sent`.
+

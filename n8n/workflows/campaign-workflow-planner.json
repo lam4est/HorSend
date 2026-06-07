@@ -1,0 +1,129 @@
+{
+  "name": "Campaign Workflow — Planner (5 phút)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-800, 320],
+      "id": "manual-trigger",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "campaign-planner",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-800, 120],
+      "id": "webhook-trigger",
+      "name": "Manual Webhook",
+      "webhookId": "campaign-planner-manual"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-800, 520],
+      "id": "schedule-5min",
+      "name": "Every 5 Minutes"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "api-url",
+              "name": "api_url",
+              "value": "={{ $env.CAMPAIGN_API_URL || 'http://172.17.0.1:3000' }}",
+              "type": "string"
+            },
+            {
+              "id": "service-key",
+              "name": "service_key",
+              "value": "={{ $env.N8N_CAMPAIGN_SERVICE_KEY || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-560, 320],
+      "id": "config",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.api_url + '/api/n8n/planner/run?window_minutes=5' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Service-Key",
+              "value": "={{ $('Config').item.json.service_key }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-320, 320],
+      "id": "run-planner",
+      "name": "Run Planner API",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [-80, 320],
+      "id": "done",
+      "name": "Done"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Manual Webhook": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Every 5 Minutes": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "Run Planner API", "type": "main", "index": 0 }]]
+    },
+    "Run Planner API": {
+      "main": [[{ "node": "Done", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "campaign-workflow" },
+    { "name": "planner" }
+  ]
+}

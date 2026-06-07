@@ -5,6 +5,15 @@ import cors from 'cors'
 import express from 'express'
 import { applyDatabaseSchema, hasAppDatabaseSchema } from './db/applySchema.js'
 import { checkDatabase, pool } from './db/pool.js'
+import { requireN8nServiceKey } from './n8n/auth.js'
+import { runPlanner } from './n8n/planner.js'
+import { sendMessage } from './n8n/send.js'
+import {
+  fetchPending,
+  markFailed,
+  markSent,
+  requeueStale
+} from './n8n/sendQueue.js'
 import { db } from './store.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -144,6 +153,77 @@ app.put('/api/campaign/scheduler-subscriptions', asyncHandler(async (req, res) =
   res.json(result)
 }))
 
+const n8nRouter = express.Router()
+n8nRouter.use(requireN8nServiceKey)
+
+n8nRouter.post('/planner/run', asyncHandler(async (req, res) => {
+  const windowMinutes = Number(req.query.window_minutes ?? 5)
+  res.json(await runPlanner(windowMinutes))
+}))
+
+n8nRouter.post('/send-queue/requeue-stale', asyncHandler(async (req, res) => {
+  const olderThanMinutes = Number(req.query.older_than_minutes ?? 10)
+  res.json(await requeueStale(olderThanMinutes))
+}))
+
+n8nRouter.get('/send-queue/pending', asyncHandler(async (req, res) => {
+  const limit = Number(req.query.limit ?? 50)
+  const claim = req.query.claim === 'true'
+  const dueBefore = req.query.due_before
+    ? new Date(String(req.query.due_before))
+    : new Date()
+  res.json(await fetchPending({ limit, claim, dueBefore }))
+}))
+
+n8nRouter.post('/send', asyncHandler(async (req, res) => {
+  const body = req.body ?? {}
+  const queueId = Number(body.queue_id)
+  const uid = Number(body.user_id ?? req.header('x-user-id') ?? 1)
+  const channel = String(body.channel ?? '')
+  const to = String(body.to ?? body.recipient ?? '')
+  if (!queueId || !channel || !to) {
+    res.status(400).json({ error: 'queue_id, channel and to/recipient are required' })
+    return
+  }
+  const result = await sendMessage({
+    queue_id: queueId,
+    user_id: uid,
+    channel,
+    to,
+    template_id: body.template_id != null ? String(body.template_id) : null,
+    sender: typeof body.sender === 'string' ? body.sender : undefined,
+    message: typeof body.message === 'string' ? body.message : undefined,
+    subject: typeof body.subject === 'string' ? body.subject : undefined
+  })
+  res.json(result)
+}))
+
+n8nRouter.post('/send-queue/:id/sent', asyncHandler(async (req, res) => {
+  const result = await markSent(Number(req.params.id), req.body?.provider_response)
+  if ('error' in result) {
+    res.status(404).json({ error: 'Queue item not found' })
+    return
+  }
+  res.json(result)
+}))
+
+n8nRouter.post('/send-queue/:id/failed', asyncHandler(async (req, res) => {
+  const error =
+    typeof req.body?.error === 'string'
+      ? req.body.error
+      : typeof req.body?.error_message === 'string'
+        ? req.body.error_message
+        : 'Send failed'
+  const result = await markFailed(Number(req.params.id), error)
+  if ('error' in result) {
+    res.status(404).json({ error: 'Queue item not found' })
+    return
+  }
+  res.json(result)
+}))
+
+app.use('/api/n8n', n8nRouter)
+
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err)
   const message = err instanceof Error ? err.message : 'Internal Server Error'
@@ -195,8 +275,9 @@ async function start (): Promise<void> {
   }
   await applyDatabaseSchema()
   await logDatabaseSummary()
-  app.listen(PORT, () => {
-    console.log(`API http://127.0.0.1:${PORT}`)
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`API http://127.0.0.1:${PORT} (also reachable from Docker/n8n on port ${PORT})`)
+    console.log('n8n: set CAMPAIGN_API_URL to http://host.docker.internal:3000 (or host IP)')
     console.log('Frontend dev: open the URL shown by Vite (often http://127.0.0.1:5173)')
   })
 }
