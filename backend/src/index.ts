@@ -8,6 +8,8 @@ import { checkDatabase, pool } from './db/pool.js'
 import { requireN8nServiceKey } from './n8n/auth.js'
 import { runPlanner } from './n8n/planner.js'
 import { sendMessage } from './n8n/send.js'
+import { startSchedulerCron, triggerSchedulerCheck } from './scheduler/cron.js'
+import { runScheduler, runSchedulerForSubscription } from './scheduler/runner.js'
 import {
   fetchPending,
   markFailed,
@@ -141,7 +143,9 @@ app.get('/api/campaign/scheduler-subscriptions', asyncHandler(async (req, res) =
 }))
 
 app.put('/api/campaign/scheduler-subscriptions', asyncHandler(async (req, res) => {
-  const result = await db.putSchedulerSubscription(userId(req), req.body ?? {})
+  const uid = userId(req)
+  const body = req.body ?? {}
+  const result = await db.putSchedulerSubscription(uid, body)
   if (result.error === 'bad_request') {
     res.status(400).json({ error: 'scheduler_event_id is required' })
     return
@@ -150,7 +154,26 @@ app.put('/api/campaign/scheduler-subscriptions', asyncHandler(async (req, res) =
     res.status(404).json({ error: 'Scheduler event not found' })
     return
   }
+
+  const eventId = Number(body.scheduler_event_id)
+  const isEnabled = 'is_enabled' in body ? Boolean(body.is_enabled) : true
+  if (eventId && isEnabled) {
+    void runSchedulerForSubscription(uid, eventId).then((sendResult) => {
+      if (sendResult.messages_sent > 0) {
+        console.log('[scheduler immediate]', sendResult)
+      } else if (sendResult.skipped_already_sent > 0) {
+        console.log('[scheduler] already sent for this send date — change Send date to reschedule')
+      }
+      triggerSchedulerCheck()
+    })
+  }
+
   res.json(result)
+}))
+
+/** Manual trigger for Campaign Auto Scheduler (backend — not n8n). */
+app.post('/api/campaign/scheduler/run', asyncHandler(async (_req, res) => {
+  res.json(await runScheduler())
 }))
 
 const n8nRouter = express.Router()
@@ -193,7 +216,8 @@ n8nRouter.post('/send', asyncHandler(async (req, res) => {
     template_id: body.template_id != null ? String(body.template_id) : null,
     sender: typeof body.sender === 'string' ? body.sender : undefined,
     message: typeof body.message === 'string' ? body.message : undefined,
-    subject: typeof body.subject === 'string' ? body.subject : undefined
+    subject: typeof body.subject === 'string' ? body.subject : undefined,
+    source: 'workflow'
   })
   res.json(result)
 }))
@@ -277,8 +301,9 @@ async function start (): Promise<void> {
   await logDatabaseSummary()
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`API http://127.0.0.1:${PORT} (also reachable from Docker/n8n on port ${PORT})`)
-    console.log('n8n: set CAMPAIGN_API_URL to http://host.docker.internal:3000 (or host IP)')
+    console.log('Campaign Workflow: n8n → set CAMPAIGN_API_URL to http://host.docker.internal:3000')
     console.log('Frontend dev: open the URL shown by Vite (often http://127.0.0.1:5173)')
+    startSchedulerCron()
   })
 }
 

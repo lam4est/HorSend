@@ -8,6 +8,7 @@ import { CHANNELS } from '../../constants/channels'
 import { api, type ContactList, type MessageTemplate } from '../../api'
 import { en, t } from '../../i18n/en'
 import type { SchedulerEventView } from '../../utils/schedulerCalendar'
+import { computeSchedulerSendDate, formatSchedulerSendDate } from '../../utils/schedulerSendDate'
 import Modal from '../common/Modal'
 
 export type SchedulerSavePayload = {
@@ -71,6 +72,20 @@ export default function EditCampaignSchedulerModal ({
     Boolean(channel) &&
     (!showTemplate || Boolean(templateId)) &&
     (useAllContacts || contactListId != null)
+
+  const sendDatePreview = useMemo(() => {
+    if (!event?.month_key) return null
+    const sendAt = computeSchedulerSendDate(
+      event.month_key,
+      event.day,
+      daysBefore,
+      hour,
+      minute
+    )
+    if (!sendAt) return null
+    const { date, time } = formatSchedulerSendDate(sendAt)
+    return t('campaign_auto_scheduler.edit_modal.send_date_preview', { date, time })
+  }, [event, daysBefore, hour, minute])
 
   const modalTitle = useMemo(() => {
     if (!event) return t('campaign_auto_scheduler.edit_modal.title')
@@ -256,6 +271,9 @@ export default function EditCampaignSchedulerModal ({
               ))}
             </select>
           </div>
+          {sendDatePreview ? (
+            <p className="edit-scheduler-modal__send-date-preview">{sendDatePreview}</p>
+          ) : null}
         </div>
       </div>
     </Modal>

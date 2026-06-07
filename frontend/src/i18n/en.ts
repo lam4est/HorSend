@@ -121,7 +121,8 @@ export const en = {
     calendar_pin_lead: 'Toggle events and tune channels as seasons shift.',
     edit: 'Edit',
     page_header: 'Campaign Auto Scheduler',
-    page_subtitle: 'Plan and activate your campaigns for the key events of the year.',
+    page_subtitle:
+      'Subscribe to calendar events, edit templates and send dates — the backend cron sends before each event.',
     api_offline_hint: 'Showing the calendar layout. Subscription status will sync when the API is available.',
     edit_modal: {
       title: 'Scheduler Event Details',
@@ -136,7 +137,8 @@ export const en = {
       select_contact_list: 'Select contact list...',
       contacts: 'contacts',
       send_date: 'Send date',
-      days_before_at: 'days before at'
+      days_before_at: 'days before at',
+      send_date_preview: 'Will send on {date} at {time}'
     },
     events: {
       new_year: "New Year's Day",
