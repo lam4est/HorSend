@@ -4,7 +4,6 @@ import { CHANNELS } from '../../constants/channels'
 import { DEFAULT_DELAY_UNIT, DEFAULT_DELAY_VALUE } from '../../constants/campaignWorkflow'
 import { t } from '../../i18n/en'
 import {
-  applyDelayParts,
   convertMinutesToDelayUnit,
   convertToMinutes,
   splitMinutes,
@@ -22,11 +21,14 @@ export type WorkflowEditData = {
   steps: WorkflowStepForm[]
 }
 
+type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error'
+
 type WorkflowEditModalProps = {
   open: boolean
   workflow: WorkflowItem | null
   onClose: () => void
-  onSave: (workflow: WorkflowItem, data: WorkflowEditData) => void
+  onSave: (workflow: WorkflowItem, data: WorkflowEditData) => void | Promise<void>
+  onClosed?: (workflow: WorkflowItem, data: WorkflowEditData) => void
 }
 
 function mapDetailStep (step: WorkflowDetail['steps'][number], index: number): WorkflowStepForm {
@@ -57,19 +59,63 @@ function mapDetailStep (step: WorkflowDetail['steps'][number], index: number): W
   }
 }
 
+function fallbackData (wf: WorkflowItem): WorkflowEditData {
+  return {
+    workflowId: wf.id,
+    originalWorkflowId: wf.workflow_id,
+    name: wf.name,
+    description: wf.description,
+    useAllContacts: true,
+    contactListId: null,
+    steps: wf.steps.map((step, index) => ({
+      id: null,
+      localId: `step-${step.workflow_step_id}-${index}`,
+      workflowStepId: step.workflow_step_id,
+      channel: step.channel,
+      templateId: null,
+      delayValue: DEFAULT_DELAY_VALUE,
+      delayUnit: DEFAULT_DELAY_UNIT,
+      delayInMinutes: 0,
+      delayDays: 0,
+      delayHours: 0,
+      delayMinutes: 0,
+      isEnabled: true,
+      isConfirmedByUser: false,
+      excludedSegmentIds: [],
+      emailSubject: '',
+      emailFromName: '',
+      emailFromAddress: '',
+      emailingService: null,
+      smsSenderId: ''
+    }))
+  }
+}
+
+const SAVE_STATUS_LABEL: Record<Exclude<SaveStatus, 'idle'>, string> = {
+  pending: 'campaign_workflow.edit_modal.save_pending',
+  saving: 'campaign_workflow.edit_modal.save_saving',
+  saved: 'campaign_workflow.edit_modal.save_saved',
+  error: 'campaign_workflow.edit_modal.save_error'
+}
+
 export default function WorkflowEditModal ({
   open,
   workflow,
   onClose,
-  onSave
+  onSave,
+  onClosed
 }: WorkflowEditModalProps) {
   const [loading, setLoading] = useState(false)
-  const [expandedStepIndex, setExpandedStepIndex] = useState<number | null>(null)
+  const [expandedStepLocalId, setExpandedStepLocalId] = useState<string | null>(null)
   const [contactLists, setContactLists] = useState<ContactList[]>([])
   const [data, setData] = useState<WorkflowEditData | null>(null)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveInFlight = useRef<Promise<void> | null>(null)
   const dataRef = useRef<WorkflowEditData | null>(null)
+  const workflowRef = useRef<WorkflowItem | null>(null)
   dataRef.current = data
+  workflowRef.current = workflow
 
   const loadDetail = useCallback(async (wf: WorkflowItem) => {
     setLoading(true)
@@ -91,54 +137,61 @@ export default function WorkflowEditModal ({
           .sort((a, b) => a.delayInMinutes - b.delayInMinutes)
       })
     } catch {
-      setData({
-        workflowId: wf.id,
-        originalWorkflowId: wf.workflow_id,
-        name: wf.name,
-        description: wf.description,
-        useAllContacts: true,
-        contactListId: null,
-        steps: wf.steps.map((step, index) => ({
-          id: null,
-          localId: `step-${step.workflow_step_id}-${index}`,
-          workflowStepId: step.workflow_step_id,
-          channel: step.channel,
-          templateId: null,
-          delayValue: DEFAULT_DELAY_VALUE,
-          delayUnit: DEFAULT_DELAY_UNIT,
-          delayInMinutes: 0,
-          delayDays: 0,
-          delayHours: 0,
-          delayMinutes: 0,
-          isEnabled: true,
-          isConfirmedByUser: false,
-          excludedSegmentIds: [],
-          emailSubject: '',
-          emailFromName: '',
-          emailFromAddress: '',
-          emailingService: null,
-          smsSenderId: ''
-        }))
-      })
+      setData(fallbackData(wf))
     } finally {
       setLoading(false)
     }
   }, [])
 
+  const workflowKey = workflow ? `${workflow.id}-${workflow.workflow_id}` : null
+
   useEffect(() => {
-    if (open && workflow) void loadDetail(workflow)
     if (!open) {
       setData(null)
-      setExpandedStepIndex(null)
+      setExpandedStepLocalId(null)
+      setSaveStatus('idle')
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current)
+        saveTimer.current = null
+      }
+      return
     }
-  }, [open, workflow, loadDetail])
+    if (workflow) void loadDetail(workflow)
+  }, [open, workflowKey, loadDetail, workflow])
+
+  async function flushSave () {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = null
+    }
+    const wf = workflowRef.current
+    const payload = dataRef.current
+    if (!wf || !payload) return
+
+    setSaveStatus('saving')
+    const task = Promise.resolve(onSave(wf, payload))
+      .then(() => {
+        setSaveStatus('saved')
+      })
+      .catch(() => {
+        setSaveStatus('error')
+      })
+      .finally(() => {
+        saveInFlight.current = null
+      })
+    saveInFlight.current = task
+    await task
+  }
 
   function scheduleAutoSave (next?: WorkflowEditData) {
-    if (!workflow) return
+    const wf = workflowRef.current
+    if (!wf) return
+    if (next) dataRef.current = next
     if (saveTimer.current) clearTimeout(saveTimer.current)
+    setSaveStatus('pending')
     saveTimer.current = setTimeout(() => {
-      const payload = next ?? dataRef.current
-      if (payload) onSave(workflow, payload)
+      saveTimer.current = null
+      void flushSave()
     }, 800)
   }
 
@@ -152,33 +205,44 @@ export default function WorkflowEditModal ({
     })
   }
 
-  function handleDelayChange (step: WorkflowStepForm) {
+  function updateStep (localId: string, patch: Partial<WorkflowStepForm>) {
     setData((prev) => {
       if (!prev) return prev
-      const steps = [...prev.steps].sort((a, b) => a.delayInMinutes - b.delayInMinutes)
-      return { ...prev, steps }
+      const steps = prev.steps.map((s) =>
+        s.localId === localId ? { ...s, ...patch } : s
+      )
+      const next = { ...prev, steps }
+      dataRef.current = next
+      scheduleAutoSave(next)
+      return next
     })
-    scheduleAutoSave()
   }
 
-  async function handleConfirm (step: WorkflowStepForm) {
-    if (!step.id) return
-    await api.confirmStep(step.id)
-    step.isConfirmedByUser = true
-    setData((prev) => (prev ? { ...prev, steps: [...prev.steps] } : prev))
-    scheduleAutoSave()
+  async function handleConfirm (localId: string, stepId: number | null) {
+    if (!stepId) return
+    await api.confirmStep(stepId)
+    updateStep(localId, { isConfirmedByUser: true })
   }
 
-  function close () {
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    if (workflow && data) onSave(workflow, data)
+  async function close () {
+    if (saveTimer.current) {
+      await flushSave()
+    } else if (saveInFlight.current) {
+      await saveInFlight.current
+    }
+
+    const wf = workflowRef.current
+    const payload = dataRef.current
+    if (wf && payload) onClosed?.(wf, payload)
     onClose()
   }
 
   if (!open || !workflow) return null
 
+  const showInitialLoading = loading && !data
+
   return (
-    <div className="workflow-edit-modal-overlay" role="presentation" onClick={close}>
+    <div className="workflow-edit-modal-overlay" role="presentation" onClick={() => void close()}>
       <div
         className="workflow-edit-modal"
         role="dialog"
@@ -187,13 +251,18 @@ export default function WorkflowEditModal ({
       >
         <div className="workflow-modal-header">
           <h2 className="workflow-modal-header__title">{t('campaign_workflow.edit_modal.title')}</h2>
-          <button type="button" className="workflow-modal-header__close" onClick={close} aria-label="Close">
+          <button
+            type="button"
+            className="workflow-modal-header__close"
+            onClick={() => void close()}
+            aria-label="Close"
+          >
             <i className="fa-solid fa-xmark" />
           </button>
         </div>
 
         <div className="workflow-edit-modal__body">
-          {loading ? (
+          {showInitialLoading ? (
             <div className="workflow-edit-modal__loading">
               <div className="workflow-edit-modal__spinner">
                 <div className="workflow-edit-modal__spinner-dot" />
@@ -265,16 +334,13 @@ export default function WorkflowEditModal ({
               <div className="workflow-edit-modal__editor">
                 <WorkflowSteps
                   steps={data.steps}
-                  expandedStepIndex={expandedStepIndex}
-                  onToggleExpand={setExpandedStepIndex}
-                  onDelayChange={handleDelayChange}
-                  onFieldsChange={scheduleAutoSave}
-                  onToggleEnabled={(step) => {
-                    step.isEnabled = !step.isEnabled
-                    setData((prev) => (prev ? { ...prev, steps: [...prev.steps] } : prev))
-                    scheduleAutoSave()
-                  }}
-                  onConfirm={(step) => void handleConfirm(step)}
+                  expandedStepLocalId={expandedStepLocalId}
+                  onToggleExpand={setExpandedStepLocalId}
+                  onStepChange={updateStep}
+                  onToggleEnabled={(localId, isEnabled) =>
+                    updateStep(localId, { isEnabled: !isEnabled })
+                  }
+                  onConfirm={(localId, stepId) => void handleConfirm(localId, stepId)}
                 />
               </div>
             </>
@@ -282,7 +348,15 @@ export default function WorkflowEditModal ({
         </div>
 
         <div className="workflow-edit-modal-footer">
-          <button type="button" className="edit-scheduler-modal__btn-cancel" onClick={close}>
+          {saveStatus !== 'idle' ? (
+            <span
+              className={`workflow-edit-modal__save-status workflow-edit-modal__save-status--${saveStatus}`}
+              aria-live="polite"
+            >
+              {t(SAVE_STATUS_LABEL[saveStatus])}
+            </span>
+          ) : null}
+          <button type="button" className="edit-scheduler-modal__btn-cancel" onClick={() => void close()}>
             {t('campaign_workflow.edit_modal.close')}
           </button>
         </div>

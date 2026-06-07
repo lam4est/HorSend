@@ -1,28 +1,28 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import type { WorkflowItem } from '../../api'
 import { CHANNEL_ICON_MAP } from '../../constants/campaignWorkflow'
 import { en, t } from '../../i18n/en'
-import WorkflowEditModal, {
-  buildWorkflowSavePayload,
-  type WorkflowEditData
-} from './WorkflowEditModal'
+import WorkflowEditModal, { type WorkflowEditData } from './WorkflowEditModal'
 
 type WorkflowCardProps = {
   workflow: WorkflowItem
   busy: boolean
   onToggle: (workflow: WorkflowItem, isActive: boolean) => void
   onRemove: (workflow: WorkflowItem) => void
-  onSave: (workflow: WorkflowItem, data: WorkflowEditData) => void
+  onSave: (workflow: WorkflowItem, data: WorkflowEditData) => void | Promise<void>
+  onEditClosed: (workflow: WorkflowItem, data: WorkflowEditData) => void
 }
 
-export default function WorkflowCard ({
+function WorkflowCard ({
   workflow,
   busy,
   onToggle,
   onRemove,
-  onSave
+  onSave,
+  onEditClosed
 }: WorkflowCardProps) {
   const [editOpen, setEditOpen] = useState(false)
+  const [editWorkflow, setEditWorkflow] = useState<WorkflowItem | null>(null)
   const [checked, setChecked] = useState(workflow.is_active)
   const hasDescription = Boolean(workflow.description?.trim())
   const categoryLabel =
@@ -37,6 +37,16 @@ export default function WorkflowCard ({
     const next = !checked
     setChecked(next)
     onToggle(workflow, next)
+  }
+
+  function openEditor () {
+    setEditWorkflow(workflow)
+    setEditOpen(true)
+  }
+
+  function closeEditor () {
+    setEditOpen(false)
+    setEditWorkflow(null)
   }
 
   return (
@@ -96,7 +106,7 @@ export default function WorkflowCard ({
               <i className="fas fa-trash-alt" aria-hidden="true" />
               {t('campaign_workflow.remove_workflow')}
             </button>
-            <button type="button" className="btn-edit-steps" onClick={() => setEditOpen(true)}>
+            <button type="button" className="btn-edit-steps" onClick={openEditor}>
               <i className="fas fa-edit" aria-hidden="true" />
               {t('campaign_workflow.edit_steps')}
             </button>
@@ -106,10 +116,23 @@ export default function WorkflowCard ({
 
       <WorkflowEditModal
         open={editOpen}
-        workflow={workflow}
-        onClose={() => setEditOpen(false)}
-        onSave={(wf, data) => onSave(wf, data)}
+        workflow={editWorkflow}
+        onClose={closeEditor}
+        onSave={onSave}
+        onClosed={onEditClosed}
       />
     </>
   )
 }
+
+export default memo(WorkflowCard, (prev, next) => {
+  if (prev.busy !== next.busy) return false
+  if (prev.workflow.id !== next.workflow.id) return false
+  return (
+    prev.workflow.is_active === next.workflow.is_active &&
+    prev.workflow.name === next.workflow.name &&
+    prev.workflow.description === next.workflow.description &&
+    prev.workflow.category === next.workflow.category &&
+    prev.workflow.steps.length === next.workflow.steps.length
+  )
+})

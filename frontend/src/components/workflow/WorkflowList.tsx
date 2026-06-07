@@ -98,10 +98,17 @@ export default function WorkflowList ({ enrollSignal = 0 }: WorkflowListProps) {
     }
   }
 
-  async function handleWorkflowSave (workflow: WorkflowItem, data: WorkflowEditData) {
+  async function saveWorkflowQuietly (workflow: WorkflowItem, data: WorkflowEditData) {
     const payload = buildWorkflowSavePayload(workflow, data)
     await api.update(workflow.workflow_id, payload)
-    await reload()
+  }
+
+  function syncWorkflowAfterEdit (workflow: WorkflowItem, data: WorkflowEditData) {
+    setWorkflows((prev) =>
+      prev.map((w) =>
+        w.id === workflow.id ? { ...w, description: data.description } : w
+      )
+    )
   }
 
   return (
@@ -152,11 +159,8 @@ export default function WorkflowList ({ enrollSignal = 0 }: WorkflowListProps) {
             })
           }
           onRemove={(w) => setRemoveTarget(w)}
-          onSave={(w, data) => {
-            void run(async () => {
-              await handleWorkflowSave(w, data)
-            })
-          }}
+          onSave={(w, data) => saveWorkflowQuietly(w, data)}
+          onEditClosed={syncWorkflowAfterEdit}
         />
       )}
       </section>

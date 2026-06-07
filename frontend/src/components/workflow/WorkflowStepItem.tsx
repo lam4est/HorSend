@@ -8,16 +8,16 @@ import {
   getDelayBadge,
   type WorkflowStepForm
 } from '../../utils/workflowStep'
+import TemplatePreview from './TemplatePreview'
 
 type WorkflowStepItemProps = {
   step: WorkflowStepForm
   isExpanded: boolean
   templates: MessageTemplate[]
   onToggleExpand: () => void
-  onDelayChange: (step: WorkflowStepForm) => void
-  onFieldsChange: () => void
-  onToggleEnabled: (step: WorkflowStepForm) => void
-  onConfirm: (step: WorkflowStepForm) => void
+  onStepChange: (localId: string, patch: Partial<WorkflowStepForm>) => void
+  onToggleEnabled: (localId: string, isEnabled: boolean) => void
+  onConfirm: (localId: string, stepId: number | null) => void
 }
 
 export default function WorkflowStepItem ({
@@ -25,8 +25,7 @@ export default function WorkflowStepItem ({
   isExpanded,
   templates,
   onToggleExpand,
-  onDelayChange,
-  onFieldsChange,
+  onStepChange,
   onToggleEnabled,
   onConfirm
 }: WorkflowStepItemProps) {
@@ -39,9 +38,20 @@ export default function WorkflowStepItem ({
   const unitKey =
     step.delayUnit === 'day' ? 'unit_day' : step.delayUnit === 'hour' ? 'unit_hour' : 'unit_minute'
 
-  function handleDelayPartsChange () {
-    applyDelayParts(step)
-    onDelayChange(step)
+  function handleDelayFieldChange (
+    field: 'delayDays' | 'delayHours' | 'delayMinutes',
+    value: number
+  ) {
+    const next = { ...step, [field]: value }
+    applyDelayParts(next)
+    onStepChange(step.localId, {
+      delayDays: next.delayDays,
+      delayHours: next.delayHours,
+      delayMinutes: next.delayMinutes,
+      delayInMinutes: next.delayInMinutes,
+      delayUnit: next.delayUnit,
+      delayValue: next.delayValue
+    })
   }
 
   return (
@@ -81,7 +91,7 @@ export default function WorkflowStepItem ({
               className="workflow-step-item__validate-btn"
               onClick={(e) => {
                 e.stopPropagation()
-                onConfirm(step)
+                onConfirm(step.localId, step.id)
               }}
             >
               <i className="fa fa-check" />
@@ -91,7 +101,7 @@ export default function WorkflowStepItem ({
             <input
               type="checkbox"
               checked={step.isEnabled}
-              onChange={() => onToggleEnabled(step)}
+              onChange={() => onToggleEnabled(step.localId, step.isEnabled)}
             />
             <span className="workflow-step-item__toggle-slider" />
           </label>
@@ -108,9 +118,8 @@ export default function WorkflowStepItem ({
                   className="form-control"
                   value={step.templateId ?? ''}
                   onChange={(e) => {
-                    step.templateId = e.target.value || null
+                    onStepChange(step.localId, { templateId: e.target.value || null })
                     setTemplateError(null)
-                    onFieldsChange()
                   }}
                 >
                   <option value="">{t('campaign_workflow.edit_modal.select_template')}</option>
@@ -130,10 +139,9 @@ export default function WorkflowStepItem ({
                     <input
                       className="form-control"
                       value={step.emailSubject}
-                      onChange={(e) => {
-                        step.emailSubject = e.target.value
-                        onFieldsChange()
-                      }}
+                      onChange={(e) =>
+                        onStepChange(step.localId, { emailSubject: e.target.value })
+                      }
                     />
                   </div>
                   <div className="workflow-step-item__form-group">
@@ -141,10 +149,9 @@ export default function WorkflowStepItem ({
                     <input
                       className="form-control"
                       value={step.emailFromName}
-                      onChange={(e) => {
-                        step.emailFromName = e.target.value
-                        onFieldsChange()
-                      }}
+                      onChange={(e) =>
+                        onStepChange(step.localId, { emailFromName: e.target.value })
+                      }
                     />
                   </div>
                   <div className="workflow-step-item__form-group">
@@ -152,10 +159,9 @@ export default function WorkflowStepItem ({
                     <input
                       className="form-control"
                       value={step.emailFromAddress}
-                      onChange={(e) => {
-                        step.emailFromAddress = e.target.value
-                        onFieldsChange()
-                      }}
+                      onChange={(e) =>
+                        onStepChange(step.localId, { emailFromAddress: e.target.value })
+                      }
                     />
                   </div>
                 </>
@@ -167,10 +173,9 @@ export default function WorkflowStepItem ({
                   <input
                     className="form-control"
                     value={step.smsSenderId}
-                    onChange={(e) => {
-                      step.smsSenderId = e.target.value
-                      onFieldsChange()
-                    }}
+                    onChange={(e) =>
+                      onStepChange(step.localId, { smsSenderId: e.target.value })
+                    }
                   />
                   <small className="workflow-step-item__hint">
                     {t('campaign_workflow.edit_modal.sms_sender_id_hint')}
@@ -190,10 +195,9 @@ export default function WorkflowStepItem ({
                       min={0}
                       className="form-control"
                       value={step.delayDays}
-                      onChange={(e) => {
-                        step.delayDays = Number(e.target.value) || 0
-                        handleDelayPartsChange()
-                      }}
+                      onChange={(e) =>
+                        handleDelayFieldChange('delayDays', Number(e.target.value) || 0)
+                      }
                     />
                   </div>
                   <div>
@@ -205,10 +209,9 @@ export default function WorkflowStepItem ({
                       min={0}
                       className="form-control"
                       value={step.delayHours}
-                      onChange={(e) => {
-                        step.delayHours = Number(e.target.value) || 0
-                        handleDelayPartsChange()
-                      }}
+                      onChange={(e) =>
+                        handleDelayFieldChange('delayHours', Number(e.target.value) || 0)
+                      }
                     />
                   </div>
                   <div>
@@ -220,25 +223,24 @@ export default function WorkflowStepItem ({
                       min={0}
                       className="form-control"
                       value={step.delayMinutes}
-                      onChange={(e) => {
-                        step.delayMinutes = Number(e.target.value) || 0
-                        handleDelayPartsChange()
-                      }}
+                      onChange={(e) =>
+                        handleDelayFieldChange('delayMinutes', Number(e.target.value) || 0)
+                      }
                     />
                   </div>
                 </div>
               </div>
             </div>
             <div className="workflow-step-item__preview-section">
-              {selected ? (
-                <div className="workflow-step-item__preview">
-                  <p>{selected.body?.replace(/<[^>]+>/g, ' ') || selected.title}</p>
-                </div>
-              ) : (
-                <div className="workflow-step-item__preview-placeholder">
-                  {t('campaign_workflow.edit_modal.select_template_to_preview')}
-                </div>
-              )}
+              <TemplatePreview
+                key={step.templateId ?? 'empty'}
+                channel={step.channel}
+                template={selected ?? null}
+                emailSubject={step.emailSubject}
+                emailFromName={step.emailFromName}
+                emailFromAddress={step.emailFromAddress}
+                smsSenderId={step.smsSenderId}
+              />
             </div>
           </div>
         </div>
