@@ -6,27 +6,28 @@ import WorkflowStepItem from './WorkflowStepItem'
 
 type WorkflowStepsProps = {
   steps: WorkflowStepForm[]
-  expandedStepIndex: number | null
-  onToggleExpand: (index: number | null) => void
-  onDelayChange: (step: WorkflowStepForm) => void
-  onFieldsChange: () => void
-  onToggleEnabled: (step: WorkflowStepForm) => void
-  onConfirm: (step: WorkflowStepForm) => void
+  expandedStepLocalId: string | null
+  onToggleExpand: (localId: string | null) => void
+  onStepChange: (localId: string, patch: Partial<WorkflowStepForm>) => void
+  onToggleEnabled: (localId: string, isEnabled: boolean) => void
+  onConfirm: (localId: string, stepId: number | null) => void
 }
 
 export default function WorkflowSteps ({
   steps,
-  expandedStepIndex,
+  expandedStepLocalId,
   onToggleExpand,
-  onDelayChange,
-  onFieldsChange,
+  onStepChange,
   onToggleEnabled,
   onConfirm
 }: WorkflowStepsProps) {
   const [templatesByChannel, setTemplatesByChannel] = useState<Record<string, Awaited<ReturnType<typeof api.templates>>['items']>>({})
+  const channelKey = [...new Set(steps.map((s) => s.channel))].sort().join(',')
 
   useEffect(() => {
-    const channels = [...new Set(steps.map((s) => s.channel))]
+    const channels = channelKey ? channelKey.split(',') : []
+    if (channels.length === 0) return
+    let cancelled = false
     void Promise.all(
       channels.map(async (ch) => {
         const key = ch === 'rbm' ? 'rcs' : ch
@@ -34,9 +35,12 @@ export default function WorkflowSteps ({
         return [ch, res.items] as const
       })
     ).then((entries) => {
-      setTemplatesByChannel(Object.fromEntries(entries))
+      if (!cancelled) setTemplatesByChannel(Object.fromEntries(entries))
     })
-  }, [steps])
+    return () => {
+      cancelled = true
+    }
+  }, [channelKey])
 
   return (
     <div className="workflow-steps">
@@ -50,17 +54,16 @@ export default function WorkflowSteps ({
         <span>{t('campaign_workflow.edit_modal.start')}</span>
       </div>
       <div className="workflow-steps__list">
-        {steps.map((step, index) => (
+        {steps.map((step) => (
           <WorkflowStepItem
             key={step.localId}
             step={step}
-            isExpanded={expandedStepIndex === index}
+            isExpanded={expandedStepLocalId === step.localId}
             templates={templatesByChannel[step.channel] ?? []}
             onToggleExpand={() =>
-              onToggleExpand(expandedStepIndex === index ? null : index)
+              onToggleExpand(expandedStepLocalId === step.localId ? null : step.localId)
             }
-            onDelayChange={onDelayChange}
-            onFieldsChange={onFieldsChange}
+            onStepChange={onStepChange}
             onToggleEnabled={onToggleEnabled}
             onConfirm={onConfirm}
           />

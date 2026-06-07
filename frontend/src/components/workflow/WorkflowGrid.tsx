@@ -7,7 +7,8 @@ type WorkflowGridProps = {
   busy: boolean
   onToggle: (workflow: WorkflowItem, isActive: boolean) => void
   onRemove: (workflow: WorkflowItem) => void
-  onSave: (workflow: WorkflowItem, data: WorkflowEditData) => void
+  onSave: (workflow: WorkflowItem, data: WorkflowEditData) => void | Promise<void>
+  onEditClosed: (workflow: WorkflowItem, data: WorkflowEditData) => void
 }
 
 export default function WorkflowGrid ({
@@ -15,7 +16,8 @@ export default function WorkflowGrid ({
   busy,
   onToggle,
   onRemove,
-  onSave
+  onSave,
+  onEditClosed
 }: WorkflowGridProps) {
   return (
     <div className="workflows-grid">
@@ -27,6 +29,7 @@ export default function WorkflowGrid ({
           onToggle={onToggle}
           onRemove={onRemove}
           onSave={onSave}
+          onEditClosed={onEditClosed}
         />
       ))}
     </div>
