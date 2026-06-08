@@ -42,3 +42,37 @@ postgres_data/
 # Optional local overrides (often contain secrets)
 docker-compose.override.yml
 docker-compose.local.yml
+
+# ML — LoRA adapters (train on Colab → upload Hugging Face Hub, not Git)
+ml/adapters/*
+!ml/adapters/.gitkeep
+
+# Python ML env & bytecode
+ml/.venv/
+venv/
+.venv/
+ml/**/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# Training / export artifacts (large)
+*.zip
+*.tar.gz
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+ml/runs/
+wandb/
+
+# Hugging Face & torch cache (base Llama downloaded at inference)
+.cache/
+**/.cache/
+huggingface/
+
+# Local dataset exports / feedback dumps (may contain real user prompts)
+ml/dataset/feedback_export.jsonl
+ml/dataset/*.export.jsonl

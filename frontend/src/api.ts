@@ -56,6 +56,39 @@ export type CatalogItem = {
 export type MessageTemplate = { id: string; name: string; title: string; body?: string }
 export type ContactList = { id: number; name: string; contacts_count: number }
 
+export type AiTemplateDraft = {
+  name: string
+  subject: string
+  body: string
+}
+
+export type AiStepDraft = {
+  channel: string
+  delay_value: number
+  delay_unit: 'minute' | 'hour' | 'day'
+  rationale?: string
+  template: AiTemplateDraft
+  email_subject?: string
+  email_from_name?: string
+  email_from_address?: string
+  sms_sender_id?: string
+}
+
+export type AiWorkflowDraft = {
+  name: string
+  category: string
+  description: string
+  contact_list_id?: number | null
+  steps: AiStepDraft[]
+}
+
+export type AiGenerateResponse = {
+  draft_id: string
+  workflow: AiWorkflowDraft
+  warnings: string[]
+  source: string
+}
+
 export type WorkflowDetail = {
   workflow_user_id: number
   original_workflow_id: number
@@ -97,6 +130,29 @@ export const api = {
     }),
   confirmStep: (stepUserId: number) =>
     request<{ ok: boolean }>(`/api/workflow-step-users/${stepUserId}/confirm`, { method: 'POST' }),
+  aiGenerateWorkflow: (body: { prompt: string; locale?: 'en' | 'vi' }) =>
+    request<AiGenerateResponse>('/api/workflows/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    }),
+  aiConfirmWorkflow: (body: {
+    prompt?: string
+    draft_id?: string
+    draft: AiWorkflowDraft
+  }) =>
+    request<{ workflow: WorkflowItem; warnings: string[] }>('/api/workflows/ai/confirm', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    }),
+  aiFeedback: (body: { draft_id: string; user_edits: AiWorkflowDraft }) =>
+    request<{ ok: boolean }>('/api/workflows/ai/feedback', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    }),
+  aiHealth: () =>
+    request<{ ok: boolean; inference_available: boolean; mock_fallback: boolean }>(
+      '/api/workflows/ai/health'
+    ),
   templates: (channel: string) =>
     request<{ items: MessageTemplate[] }>(`/api/templates?channel=${encodeURIComponent(channel)}`),
   contactLists: () =>

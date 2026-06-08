@@ -9,6 +9,7 @@ import WorkflowGrid from './WorkflowGrid'
 import type { WorkflowEditData } from './WorkflowEditModal'
 import ChannelMarquee from '../common/ChannelMarquee'
 import WorkflowHeader from './WorkflowHeader'
+import WorkflowAIBuilder from './WorkflowAIBuilder'
 import WorkflowHero from './WorkflowHero'
 import WorkflowStats from './WorkflowStats'
 
@@ -27,6 +28,7 @@ export default function WorkflowList ({ enrollSignal = 0 }: WorkflowListProps) {
   const [removeTarget, setRemoveTarget] = useState<WorkflowItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [aiOpen, setAiOpen] = useState(false)
 
   const reload = useCallback(async () => {
     setLoadError(null)
@@ -113,7 +115,7 @@ export default function WorkflowList ({ enrollSignal = 0 }: WorkflowListProps) {
 
   return (
     <div className="workflow-list">
-      <WorkflowHero onAdd={openEnrollModal} />
+      <WorkflowHero onAdd={openEnrollModal} onCreateWithAi={() => setAiOpen(true)} />
       <ChannelMarquee />
 
       <section className="workflow-section workflow-section--interest">
@@ -164,6 +166,16 @@ export default function WorkflowList ({ enrollSignal = 0 }: WorkflowListProps) {
         />
       )}
       </section>
+
+      <WorkflowAIBuilder
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        onCreated={() => {
+          void run(async () => {
+            await reload()
+          })
+        }}
+      />
 
       <Modal
         open={enrollOpen}

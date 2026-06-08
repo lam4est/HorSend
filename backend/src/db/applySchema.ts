@@ -6,6 +6,7 @@ import { pool } from './pool.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const schemaPath = path.join(__dirname, 'schema.sql')
 const alterPath = path.join(__dirname, 'alter.sql')
+const aiMigrationPath = path.join(__dirname, 'ai_migration.sql')
 const sendQueuePath = path.join(__dirname, '../../../n8n/sql/workflow_send_queue.sql')
 const schedulerLogPath = path.join(__dirname, 'scheduler_send_log.sql')
 const schedulerLogAlterPath = path.join(__dirname, 'scheduler_send_log_alter.sql')
@@ -36,12 +37,15 @@ async function applySendQueueSchema (): Promise<void> {
 
 export async function applyDatabaseSchema (): Promise<void> {
   if (await hasAppDatabaseSchema()) {
+    await applySqlFile(alterPath)
+    await applySqlFile(aiMigrationPath)
     await applySendQueueSchema()
     console.log('PostgreSQL: using existing app schema (workflows, workflow_user, …).')
     return
   }
   await pool.query(fs.readFileSync(schemaPath, 'utf8'))
   await pool.query(fs.readFileSync(alterPath, 'utf8'))
+  await applySqlFile(aiMigrationPath)
   await applySendQueueSchema()
   console.log('PostgreSQL: schema applied (workflows, scheduler_event, …). Run: pnpm db:seed')
 }

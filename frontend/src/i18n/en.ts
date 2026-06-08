@@ -52,6 +52,39 @@ export const en = {
       categories: 'Categories'
     },
     add_workflow_campaign: 'Add workflow campaign',
+    create_with_ai: 'Create with AI',
+    ai: {
+      title: 'AI Workflow Builder',
+      lead: 'Describe your customer journey in plain language. AI will design steps, delays, and message content.',
+      prompt_placeholder:
+        'e.g. Welcome new users with an email immediately, then SMS after 1 day with a special offer…',
+      locale: 'Language',
+      generate: 'Generate workflow',
+      generating: 'Designing journey…',
+      back: 'Back',
+      continue: 'Continue',
+      confirm_create: 'Create workflow',
+      creating: 'Creating…',
+      progress: 'Builder progress',
+      step_describe: 'Describe',
+      step_preview: 'Preview & edit',
+      step_confirm: 'Confirm',
+      source: 'Engine',
+      template_body: 'Message content',
+      immediate: 'Immediately',
+      confirm_lead: 'Review your AI-generated workflow before adding it to campaigns.',
+      inactive_note:
+        'The workflow will be added as inactive. Confirm each step in the editor before activating.',
+      quick_onboarding:
+        'Create a 3-step welcome journey: email immediately, SMS after 1 day, follow-up email after 3 days.',
+      quick_abandoned:
+        'Abandoned cart recovery: email after 1 hour, SMS after 24 hours, final email with discount after 72 hours.',
+      quick_reactivation:
+        'Win back inactive customers over 2 weeks with email and SMS reminders and a comeback offer.',
+      quick_black_friday:
+        'Black Friday campaign: teaser email 1 week before, launch day email and SMS, last-chance reminder after 2 days.',
+      black_friday_label: 'Black Friday'
+    },
     enroll_title: 'Add workflow to my campaigns',
     enroll_lead:
       'Pick a template. You can then set the contact list, channels, and templates for each step.',

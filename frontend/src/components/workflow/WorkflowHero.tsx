@@ -3,12 +3,13 @@ import { useGsapHeroImage } from '../../hooks/useGsapReveal'
 
 type WorkflowHeroProps = {
   onAdd: () => void
+  onCreateWithAi?: () => void
 }
 
 const HERO_IMAGE =
   'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=960&h=720&fit=crop&q=80'
 
-export default function WorkflowHero ({ onAdd }: WorkflowHeroProps) {
+export default function WorkflowHero ({ onAdd, onCreateWithAi }: WorkflowHeroProps) {
   const sectionRef = useGsapHeroImage('.workflow-hero__visual-img')
 
   return (
@@ -31,6 +32,15 @@ export default function WorkflowHero ({ onAdd }: WorkflowHeroProps) {
         </h1>
         <p className="workflow-hero__lead">{t('campaign_workflow.page_lead')}</p>
         <div className="workflow-hero__actions">
+          {onCreateWithAi ? (
+            <button
+              type="button"
+              className="workflow-hero__cta workflow-hero__cta--ai"
+              onClick={onCreateWithAi}
+            >
+              {t('campaign_workflow.create_with_ai')}
+            </button>
+          ) : null}
           <button type="button" className="workflow-hero__cta workflow-hero__cta--primary" onClick={onAdd}>
             {t('campaign_workflow.add_workflow_campaign')}
           </button>

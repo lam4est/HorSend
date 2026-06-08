@@ -70,10 +70,34 @@ Dùng prefix trong message commit, ví dụ: `feat: thêm lọc workflow theo ca
 ## Cấu trúc
 
 ```
-backend/   API Express (+ cron Auto Scheduler, + /api/n8n/* cho Workflow)
+backend/   API Express (+ cron Auto Scheduler, + /api/n8n/* cho Workflow, + /api/workflows/ai/*)
 frontend/  React
+ml/        Dataset, LoRA training, inference FastAPI (port 8001)
 n8n/       Workflow JSON (chỉ Campaign Workflow)
 ```
+
+## AI Workflow Builder
+
+Tạo workflow mới từ prompt + sinh nội dung template (email/SMS). Engine ML riêng (fine-tune LoRA), fallback rule-based khi chưa train model.
+
+| Thành phần | Mô tả |
+|------------|--------|
+| UI | Nút **Create with AI** trên trang Workflows |
+| API | `POST /api/workflows/ai/generate`, `/confirm`, `/feedback` |
+| Inference | `ml/inference/server.py` — port **8001** |
+| Feedback | Bảng `ai_generation_log` — dùng tái train |
+
+```bash
+# Dataset + inference (xem ml/README.md)
+pnpm ml:dataset
+pnpm ml:serve
+
+# Backend .env
+ML_INFERENCE_URL=http://127.0.0.1:8001
+ML_USE_MOCK=false   # true = bỏ qua inference, dùng mock trong backend
+```
+
+Workflow AI được tạo với `is_active: false` — xác nhận từng step trong editor trước khi bật.
 
 ## Campaign Auto Scheduler — cron trong backend (không dùng n8n)
 

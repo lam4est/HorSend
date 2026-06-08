@@ -21,6 +21,8 @@ import {
   markSent,
   requeueStale
 } from './n8n/sendQueue.js'
+import { handleAiConfirm, handleAiFeedback, handleAiGenerate } from './ai/routes.js'
+import { checkInferenceHealth } from './ai/inferenceClient.js'
 import { db } from './store.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -127,6 +129,23 @@ app.post('/api/workflow-step-users/:id/confirm', asyncHandler(async (req, res) =
     return
   }
   res.json(result)
+}))
+
+app.get('/api/workflows/ai/health', asyncHandler(async (_req, res) => {
+  const inference = await checkInferenceHealth()
+  res.json({ ok: true, inference_available: inference, mock_fallback: !inference })
+}))
+
+app.post('/api/workflows/ai/generate', asyncHandler(async (req, res) => {
+  await handleAiGenerate(req, res, userId(req))
+}))
+
+app.post('/api/workflows/ai/confirm', asyncHandler(async (req, res) => {
+  await handleAiConfirm(req, res, userId(req))
+}))
+
+app.post('/api/workflows/ai/feedback', asyncHandler(async (req, res) => {
+  await handleAiFeedback(req, res, userId(req))
 }))
 
 app.get('/api/templates', asyncHandler(async (req, res) => {
