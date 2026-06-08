@@ -9,6 +9,11 @@ import { requireN8nServiceKey } from './n8n/auth.js'
 import { runPlanner } from './n8n/planner.js'
 import { sendMessage } from './n8n/send.js'
 import { startSchedulerCron, triggerSchedulerCheck } from './scheduler/cron.js'
+import {
+  fetchSendHistory,
+  fetchSendHistoryCsv,
+  parseHistoryDateRange
+} from './campaign/sendHistory.js'
 import { runScheduler, runSchedulerForSubscription } from './scheduler/runner.js'
 import {
   fetchPending,
@@ -174,6 +179,72 @@ app.put('/api/campaign/scheduler-subscriptions', asyncHandler(async (req, res) =
 /** Manual trigger for Campaign Auto Scheduler (backend — not n8n). */
 app.post('/api/campaign/scheduler/run', asyncHandler(async (_req, res) => {
   res.json(await runScheduler())
+}))
+
+function parseSendHistoryQuery (req: express.Request): {
+  filters: {
+    source: 'all' | 'workflow' | 'scheduler'
+    status: 'all' | 'sent' | 'failed' | 'pending'
+    dateFrom: Date | null
+    dateTo: Date | null
+    limit?: number
+    offset?: number
+  }
+  error?: string
+} {
+  const source = String(req.query.source ?? 'all')
+  const status = String(req.query.status ?? 'all')
+  const limit = Number(req.query.limit ?? 30)
+  const offset = Number(req.query.offset ?? 0)
+  const dateRange = parseHistoryDateRange(
+    typeof req.query.date_from === 'string' ? req.query.date_from : undefined,
+    typeof req.query.date_to === 'string' ? req.query.date_to : undefined
+  )
+
+  if (!['all', 'workflow', 'scheduler'].includes(source)) {
+    return { filters: { source: 'all', status: 'all', dateFrom: null, dateTo: null }, error: 'source must be all, workflow, or scheduler' }
+  }
+  if (!['all', 'sent', 'failed', 'pending'].includes(status)) {
+    return { filters: { source: 'all', status: 'all', dateFrom: null, dateTo: null }, error: 'status must be all, sent, failed, or pending' }
+  }
+  if (dateRange.error) {
+    return { filters: { source: 'all', status: 'all', dateFrom: null, dateTo: null }, error: dateRange.error }
+  }
+
+  return {
+    filters: {
+      source: source as 'all' | 'workflow' | 'scheduler',
+      status: status as 'all' | 'sent' | 'failed' | 'pending',
+      dateFrom: dateRange.dateFrom,
+      dateTo: dateRange.dateTo,
+      limit,
+      offset
+    }
+  }
+}
+
+app.get('/api/campaign/send-history', asyncHandler(async (req, res) => {
+  const parsed = parseSendHistoryQuery(req)
+  if (parsed.error) {
+    res.status(400).json({ error: parsed.error })
+    return
+  }
+
+  res.json(await fetchSendHistory(userId(req), parsed.filters))
+}))
+
+app.get('/api/campaign/send-history/export', asyncHandler(async (req, res) => {
+  const parsed = parseSendHistoryQuery(req)
+  if (parsed.error) {
+    res.status(400).json({ error: parsed.error })
+    return
+  }
+
+  const csv = await fetchSendHistoryCsv(userId(req), parsed.filters)
+  const stamp = new Date().toISOString().slice(0, 10)
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+  res.setHeader('Content-Disposition', `attachment; filename="send-history-${stamp}.csv"`)
+  res.send(csv)
 }))
 
 const n8nRouter = express.Router()

@@ -6,6 +6,7 @@
 @import './styles/workflow.css';
 @import './styles/scheduler.css';
 @import './styles/workflow-edit.css';
+@import './styles/history.css';
 
 *,
 *::before,

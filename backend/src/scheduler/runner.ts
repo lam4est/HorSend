@@ -162,20 +162,52 @@ async function loadTemplate (
   }
 }
 
+type SendDetailRow = {
+  contact_id: number
+  recipient: string
+  status: 'sent' | 'failed'
+  error_message: string | null
+}
+
 async function recordSend (
   userId: number,
   eventId: number,
   eventYear: number,
   sendAt: Date,
   contactsSent: number
-): Promise<void> {
-  await pool.query(
+): Promise<number | null> {
+  const result = await pool.query<{ id: number }>(
     `INSERT INTO scheduler_send_log (
        user_id, scheduler_event_id, event_year, scheduled_send_at, contacts_sent, sent_at
      ) VALUES ($1, $2, $3, $4, $5, NOW())
-     ON CONFLICT DO NOTHING`,
+     ON CONFLICT DO NOTHING
+     RETURNING id`,
     [userId, eventId, eventYear, sendAt.toISOString(), contactsSent]
   )
+  return result.rows[0]?.id ?? null
+}
+
+async function recordSendDetails (
+  sendLogId: number,
+  channel: string,
+  details: SendDetailRow[]
+): Promise<void> {
+  if (details.length === 0) return
+  for (const detail of details) {
+    await pool.query(
+      `INSERT INTO scheduler_send_detail (
+         send_log_id, contact_id, recipient, channel, status, sent_at, error_message
+       ) VALUES ($1, $2, $3, $4, $5, NOW(), $6)`,
+      [
+        sendLogId,
+        detail.contact_id,
+        detail.recipient,
+        channel,
+        detail.status,
+        detail.error_message
+      ]
+    )
+  }
 }
 
 /** Earliest future send time among active, not-yet-sent subscriptions. */
@@ -237,26 +269,52 @@ export async function runScheduler (filter?: RunFilter): Promise<SchedulerRunRes
     ])
 
     let sentForSub = 0
+    const details: SendDetailRow[] = []
     for (const contact of contacts) {
       const to = recipientForChannel(sub.channel, contact)
       if (!to) continue
 
-      await sendMessage({
-        queue_id: 0,
-        user_id: sub.user_id,
-        channel: sub.channel,
-        to,
-        template_id: sub.template_id,
-        sender: 'Octopush',
-        message: template.body,
-        subject: template.subject,
-        source: 'scheduler'
-      })
-      sentForSub += 1
-      messagesSent += 1
+      try {
+        await sendMessage({
+          queue_id: 0,
+          user_id: sub.user_id,
+          channel: sub.channel,
+          to,
+          template_id: sub.template_id,
+          sender: 'Octopush',
+          message: template.body,
+          subject: template.subject,
+          source: 'scheduler'
+        })
+        details.push({
+          contact_id: contact.id,
+          recipient: to,
+          status: 'sent',
+          error_message: null
+        })
+        sentForSub += 1
+        messagesSent += 1
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Send failed'
+        details.push({
+          contact_id: contact.id,
+          recipient: to,
+          status: 'failed',
+          error_message: message
+        })
+      }
     }
 
-    await recordSend(sub.user_id, sub.scheduler_event_id, eventYear, sendAt, sentForSub)
+    const sendLogId = await recordSend(
+      sub.user_id,
+      sub.scheduler_event_id,
+      eventYear,
+      sendAt,
+      sentForSub
+    )
+    if (sendLogId != null) {
+      await recordSendDetails(sendLogId, sub.channel, details)
+    }
     completed += 1
   }
 

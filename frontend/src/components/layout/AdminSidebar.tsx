@@ -88,6 +88,13 @@ export default function AdminSidebar ({
                   >
                     Campaign Workflow
                   </button>
+                  <button
+                    type="button"
+                    className={`submenu__item${activeFeature === 'send-history' ? ' submenu__item--active' : ''}`}
+                    onClick={() => navigate('send-history')}
+                  >
+                    Send History
+                  </button>
                 </div>
               )}
             </div>

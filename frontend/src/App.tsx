@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
+import CampaignSendHistory from './components/history/CampaignSendHistory'
 import CampaignAutoScheduler from './components/scheduler/CampaignAutoScheduler'
 import AdminSidebar from './components/layout/AdminSidebar'
 import CrmTopNav from './components/layout/CrmTopNav'
 import WorkflowList from './components/workflow/WorkflowList'
 import type { SidebarFeatureKey } from './types/sidebar'
 
-type FeatureTab = 'workflow' | 'auto-schedule'
+type FeatureTab = 'workflow' | 'auto-schedule' | 'send-history'
 
 function readTabFromQuery (): FeatureTab | null {
   const q = new URLSearchParams(window.location.search).get('tab')
-  if (q === 'workflow' || q === 'auto-schedule') return q
+  if (q === 'workflow' || q === 'auto-schedule' || q === 'send-history') return q
   if (q === 'campaigns') return 'workflow'
   return null
 }
@@ -22,11 +23,16 @@ export default function App () {
   const activeSidebarFeature = useMemo<SidebarFeatureKey | null>(() => {
     if (activeTab === 'workflow') return 'workflow'
     if (activeTab === 'auto-schedule') return 'auto-schedule'
+    if (activeTab === 'send-history') return 'send-history'
     return null
   }, [activeTab])
 
   const crmPageTitle =
-    activeTab === 'workflow' ? 'Campaign Workflow' : 'Campaign Auto Scheduler'
+    activeTab === 'workflow'
+      ? 'Campaign Workflow'
+      : activeTab === 'auto-schedule'
+        ? 'Campaign Auto Scheduler'
+        : 'Send History'
 
   useEffect(() => {
     const url = new URL(window.location.href)
@@ -35,7 +41,7 @@ export default function App () {
   }, [activeTab])
 
   function onSidebarNavigate (key: SidebarFeatureKey) {
-    if (key === 'workflow' || key === 'auto-schedule') {
+    if (key === 'workflow' || key === 'auto-schedule' || key === 'send-history') {
       setActiveTab(key)
       return
     }
@@ -98,8 +104,10 @@ export default function App () {
           <main className="app-content app-content--motion">
             {activeTab === 'workflow' ? (
               <WorkflowList enrollSignal={enrollSignal} />
-            ) : (
+            ) : activeTab === 'auto-schedule' ? (
               <CampaignAutoScheduler />
+            ) : (
+              <CampaignSendHistory />
             )}
           </main>
         </div>
