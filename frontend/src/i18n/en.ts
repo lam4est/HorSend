@@ -121,7 +121,8 @@ export const en = {
     calendar_pin_lead: 'Toggle events and tune channels as seasons shift.',
     edit: 'Edit',
     page_header: 'Campaign Auto Scheduler',
-    page_subtitle: 'Plan and activate your campaigns for the key events of the year.',
+    page_subtitle:
+      'Subscribe to calendar events, edit templates and send dates — the backend cron sends before each event.',
     api_offline_hint: 'Showing the calendar layout. Subscription status will sync when the API is available.',
     edit_modal: {
       title: 'Scheduler Event Details',
@@ -136,7 +137,8 @@ export const en = {
       select_contact_list: 'Select contact list...',
       contacts: 'contacts',
       send_date: 'Send date',
-      days_before_at: 'days before at'
+      days_before_at: 'days before at',
+      send_date_preview: 'Will send on {date} at {time}'
     },
     events: {
       new_year: "New Year's Day",
@@ -192,6 +194,58 @@ export const en = {
       estimated_revenue: 'Estimated revenue',
       investment: 'Investment'
     }
+  },
+  send_history: {
+    page_title: 'Campaign Send History',
+    page_lead: 'Track every campaign send — who received messages, when, and whether delivery succeeded.',
+    stats: {
+      batches: 'Campaign sends',
+      total_messages: 'Total messages',
+      sent: 'Delivered',
+      failed: 'Failed',
+      pending: 'Pending'
+    },
+    filters: {
+      source_all: 'All sources',
+      source_workflow: 'Workflow',
+      source_scheduler: 'Auto Scheduler',
+      status_all: 'All statuses',
+      status_sent: 'Delivered',
+      status_failed: 'Failed',
+      status_pending: 'Pending',
+      date_from: 'From',
+      date_to: 'To',
+      clear_dates: 'Clear dates'
+    },
+    export_csv: 'Export CSV',
+    exporting: 'Exporting…',
+    export_error: 'Could not export CSV. Try again.',
+    auto_refresh_on: 'Auto refresh (10s)',
+    auto_refresh_off: 'Auto refresh off',
+    last_updated: 'Updated {time}',
+    refreshing: 'Refreshing…',
+    source_workflow: 'Workflow',
+    source_scheduler: 'Auto Scheduler',
+    scheduled_at: 'Scheduled',
+    completed_at: 'Completed',
+    channel: 'Channel',
+    template: 'Template',
+    recipients: 'Recipients',
+    recipient: 'Recipient',
+    contact: 'Contact',
+    status: 'Status',
+    sent_at: 'Sent at',
+    error: 'Error',
+    attempts: 'Attempts',
+    empty: 'No send history yet. Run a workflow campaign or enable Auto Scheduler to see results here.',
+    expand: 'Show recipients',
+    collapse: 'Hide recipients',
+    legacy_batch_note:
+      '{count} messages sent — per-recipient detail is only available for sends after this update.',
+    status_sent: 'Delivered',
+    status_failed: 'Failed',
+    status_pending: 'Pending',
+    status_processing: 'Processing'
   }
 } as const
 

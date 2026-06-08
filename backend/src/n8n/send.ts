@@ -7,6 +7,8 @@ export type SendPayload = {
   sender?: string
   message?: string
   subject?: string
+  /** Distinguishes Campaign Workflow (n8n) vs Auto Scheduler (backend cron). */
+  source?: 'workflow' | 'scheduler'
 }
 
 export type SendResult = {
@@ -20,7 +22,8 @@ export type SendResult = {
 /** Dev/stub sender — replace with Octopush / email provider integration. */
 export async function sendMessage (payload: SendPayload): Promise<SendResult> {
   const messageId = `mock-${payload.queue_id}-${Date.now()}`
-  console.log('[n8n send]', {
+  const tag = payload.source === 'scheduler' ? 'scheduler send' : 'workflow send'
+  console.log(`[${tag}]`, {
     message_id: messageId,
     user_id: payload.user_id,
     channel: payload.channel,

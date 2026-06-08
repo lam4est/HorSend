@@ -8,6 +8,13 @@ import { checkDatabase, pool } from './db/pool.js'
 import { requireN8nServiceKey } from './n8n/auth.js'
 import { runPlanner } from './n8n/planner.js'
 import { sendMessage } from './n8n/send.js'
+import { startSchedulerCron, triggerSchedulerCheck } from './scheduler/cron.js'
+import {
+  fetchSendHistory,
+  fetchSendHistoryCsv,
+  parseHistoryDateRange
+} from './campaign/sendHistory.js'
+import { runScheduler, runSchedulerForSubscription } from './scheduler/runner.js'
 import {
   fetchPending,
   markFailed,
@@ -141,7 +148,9 @@ app.get('/api/campaign/scheduler-subscriptions', asyncHandler(async (req, res) =
 }))
 
 app.put('/api/campaign/scheduler-subscriptions', asyncHandler(async (req, res) => {
-  const result = await db.putSchedulerSubscription(userId(req), req.body ?? {})
+  const uid = userId(req)
+  const body = req.body ?? {}
+  const result = await db.putSchedulerSubscription(uid, body)
   if (result.error === 'bad_request') {
     res.status(400).json({ error: 'scheduler_event_id is required' })
     return
@@ -150,7 +159,92 @@ app.put('/api/campaign/scheduler-subscriptions', asyncHandler(async (req, res) =
     res.status(404).json({ error: 'Scheduler event not found' })
     return
   }
+
+  const eventId = Number(body.scheduler_event_id)
+  const isEnabled = 'is_enabled' in body ? Boolean(body.is_enabled) : true
+  if (eventId && isEnabled) {
+    void runSchedulerForSubscription(uid, eventId).then((sendResult) => {
+      if (sendResult.messages_sent > 0) {
+        console.log('[scheduler immediate]', sendResult)
+      } else if (sendResult.skipped_already_sent > 0) {
+        console.log('[scheduler] already sent for this send date — change Send date to reschedule')
+      }
+      triggerSchedulerCheck()
+    })
+  }
+
   res.json(result)
+}))
+
+/** Manual trigger for Campaign Auto Scheduler (backend — not n8n). */
+app.post('/api/campaign/scheduler/run', asyncHandler(async (_req, res) => {
+  res.json(await runScheduler())
+}))
+
+function parseSendHistoryQuery (req: express.Request): {
+  filters: {
+    source: 'all' | 'workflow' | 'scheduler'
+    status: 'all' | 'sent' | 'failed' | 'pending'
+    dateFrom: Date | null
+    dateTo: Date | null
+    limit?: number
+    offset?: number
+  }
+  error?: string
+} {
+  const source = String(req.query.source ?? 'all')
+  const status = String(req.query.status ?? 'all')
+  const limit = Number(req.query.limit ?? 30)
+  const offset = Number(req.query.offset ?? 0)
+  const dateRange = parseHistoryDateRange(
+    typeof req.query.date_from === 'string' ? req.query.date_from : undefined,
+    typeof req.query.date_to === 'string' ? req.query.date_to : undefined
+  )
+
+  if (!['all', 'workflow', 'scheduler'].includes(source)) {
+    return { filters: { source: 'all', status: 'all', dateFrom: null, dateTo: null }, error: 'source must be all, workflow, or scheduler' }
+  }
+  if (!['all', 'sent', 'failed', 'pending'].includes(status)) {
+    return { filters: { source: 'all', status: 'all', dateFrom: null, dateTo: null }, error: 'status must be all, sent, failed, or pending' }
+  }
+  if (dateRange.error) {
+    return { filters: { source: 'all', status: 'all', dateFrom: null, dateTo: null }, error: dateRange.error }
+  }
+
+  return {
+    filters: {
+      source: source as 'all' | 'workflow' | 'scheduler',
+      status: status as 'all' | 'sent' | 'failed' | 'pending',
+      dateFrom: dateRange.dateFrom,
+      dateTo: dateRange.dateTo,
+      limit,
+      offset
+    }
+  }
+}
+
+app.get('/api/campaign/send-history', asyncHandler(async (req, res) => {
+  const parsed = parseSendHistoryQuery(req)
+  if (parsed.error) {
+    res.status(400).json({ error: parsed.error })
+    return
+  }
+
+  res.json(await fetchSendHistory(userId(req), parsed.filters))
+}))
+
+app.get('/api/campaign/send-history/export', asyncHandler(async (req, res) => {
+  const parsed = parseSendHistoryQuery(req)
+  if (parsed.error) {
+    res.status(400).json({ error: parsed.error })
+    return
+  }
+
+  const csv = await fetchSendHistoryCsv(userId(req), parsed.filters)
+  const stamp = new Date().toISOString().slice(0, 10)
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+  res.setHeader('Content-Disposition', `attachment; filename="send-history-${stamp}.csv"`)
+  res.send(csv)
 }))
 
 const n8nRouter = express.Router()
@@ -193,7 +287,8 @@ n8nRouter.post('/send', asyncHandler(async (req, res) => {
     template_id: body.template_id != null ? String(body.template_id) : null,
     sender: typeof body.sender === 'string' ? body.sender : undefined,
     message: typeof body.message === 'string' ? body.message : undefined,
-    subject: typeof body.subject === 'string' ? body.subject : undefined
+    subject: typeof body.subject === 'string' ? body.subject : undefined,
+    source: 'workflow'
   })
   res.json(result)
 }))
@@ -277,8 +372,9 @@ async function start (): Promise<void> {
   await logDatabaseSummary()
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`API http://127.0.0.1:${PORT} (also reachable from Docker/n8n on port ${PORT})`)
-    console.log('n8n: set CAMPAIGN_API_URL to http://host.docker.internal:3000 (or host IP)')
+    console.log('Campaign Workflow: n8n → set CAMPAIGN_API_URL to http://host.docker.internal:3000')
     console.log('Frontend dev: open the URL shown by Vite (often http://127.0.0.1:5173)')
+    startSchedulerCron()
   })
 }
 

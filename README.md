@@ -70,18 +70,37 @@ Dùng prefix trong message commit, ví dụ: `feat: thêm lọc workflow theo ca
 ## Cấu trúc
 
 ```
-backend/   API Express (+ /api/n8n/* cho n8n)
+backend/   API Express (+ cron Auto Scheduler, + /api/n8n/* cho Workflow)
 frontend/  React
-n8n/       Workflow JSON + SQL queue
+n8n/       Workflow JSON (chỉ Campaign Workflow)
 ```
 
-## n8n — kết nối với backend
+## Campaign Auto Scheduler — cron trong backend (không dùng n8n)
 
-Backend expose các endpoint dưới `/api/n8n/*` (bảng queue: `workflow_send_queue`).
+Người dùng bật sự kiện trên lịch, chọn template / kênh / danh sách liên hệ và **Send date** (X ngày trước sự kiện, giờ cố định). Backend chạy cron nội bộ, khi đến giờ gửi sẽ gọi sender (mock/live) trực tiếp.
+
+| Thành phần | Mô tả |
+|------------|--------|
+| Gửi đúng giờ | `setTimeout` tới đúng send date/time đã cấu hình |
+| Safety net | `SCHEDULER_CRON_SECONDS` (mặc định 30s) — quét lại subscription đã đến giờ |
+| Gửi ngay khi lưu | Nếu send date ≤ hiện tại → gửi ngay sau khi Save trên UI |
+| Bảng log | `scheduler_send_log` — mỗi user/event/năm chỉ gửi một lần |
+| Trigger thủ công | `POST /api/campaign/scheduler/run` |
+
+```bash
+# Chạy scheduler ngay (kiểm tra)
+curl -X POST 'http://127.0.0.1:3000/api/campaign/scheduler/run'
+```
+
+Log backend: `[scheduler send]` (khác với `[workflow send]` của n8n).
+
+## Campaign Workflow — n8n
+
+Chỉ **Campaign Workflow** dùng n8n. Backend expose `/api/n8n/*` (bảng queue: `workflow_send_queue`).
 
 | Workflow | Cron | Việc làm |
 |----------|------|----------|
-| `n8n/workflows/campaign-workflow-planner.json` | 5 phút | Gọi `POST /api/n8n/planner/run` — backend tính campaign due và ghi queue |
+| `n8n/workflows/campaign-workflow-planner.json` | 5 phút | Gọi `POST /api/n8n/planner/run` — tính step due và ghi queue |
 | `n8n/workflows/campaign-workflow-dispatcher.json` | 1 phút | Claim queue → gửi qua `POST /api/n8n/send` → đánh dấu sent/failed |
 
 ### Biến môi trường n8n
@@ -119,5 +138,5 @@ curl 'http://127.0.0.1:3000/api/n8n/send-queue/pending?limit=10&claim=true'
 curl -X POST 'http://127.0.0.1:3000/api/n8n/send-queue/requeue-stale?older_than_minutes=10'
 ```
 
-Sau khi dispatcher chạy, log backend sẽ in `[n8n send]` (mock sender) và queue chuyển `sent`.
+Sau khi dispatcher chạy, log backend sẽ in `[workflow send]` (mock sender) và queue chuyển `sent`.
 

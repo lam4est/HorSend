@@ -127,5 +127,93 @@ export const api = {
     request<{ ok: boolean }>('/api/campaign/scheduler-subscriptions', {
       method: 'PUT',
       body: JSON.stringify(body)
-    })
+    }),
+  sendHistory: (params?: SendHistoryQuery) => {
+    const suffix = buildSendHistoryQuery(params)
+    return request<SendHistoryResponse>(`/api/campaign/send-history${suffix}`)
+  },
+  sendHistoryExport: async (params?: SendHistoryQuery): Promise<Blob> => {
+    const suffix = buildSendHistoryQuery(params)
+    let res: Response
+    try {
+      res = await fetch(apiUrl(`/api/campaign/send-history/export${suffix}`), {
+        headers: { ...headers, Accept: 'text/csv' }
+      })
+    } catch {
+      throw new Error(
+        'Cannot reach the API server. Start the backend: pnpm --filter backend dev (port 3000).'
+      )
+    }
+    if (!res.ok) {
+      let detail = res.statusText
+      try {
+        const body = (await res.json()) as { error?: string }
+        if (body.error) detail = body.error
+      } catch {
+        /* non-JSON body */
+      }
+      throw new Error(detail || `Export failed (${res.status})`)
+    }
+    return res.blob()
+  }
+}
+
+export type SendHistoryQuery = {
+  source?: 'all' | 'workflow' | 'scheduler'
+  status?: 'all' | 'sent' | 'failed' | 'pending'
+  date_from?: string
+  date_to?: string
+  limit?: number
+  offset?: number
+}
+
+function buildSendHistoryQuery (params?: SendHistoryQuery): string {
+  const q = new URLSearchParams()
+  if (params?.source) q.set('source', params.source)
+  if (params?.status) q.set('status', params.status)
+  if (params?.date_from) q.set('date_from', params.date_from)
+  if (params?.date_to) q.set('date_to', params.date_to)
+  if (params?.limit != null) q.set('limit', String(params.limit))
+  if (params?.offset != null) q.set('offset', String(params.offset))
+  const query = q.toString()
+  return query ? `?${query}` : ''
+}
+
+export type SendHistoryRecipient = {
+  id: number
+  contact_id: number | null
+  contact_name: string | null
+  recipient: string
+  status: string
+  sent_at: string | null
+  error_message: string | null
+  attempts: number
+}
+
+export type SendHistoryBatch = {
+  id: string
+  source: 'workflow' | 'scheduler'
+  campaign_name: string
+  channel: string
+  template_id: string | null
+  scheduled_at: string
+  completed_at: string | null
+  total: number
+  sent: number
+  failed: number
+  pending: number
+  processing: number
+  recipients: SendHistoryRecipient[]
+}
+
+export type SendHistoryResponse = {
+  summary: {
+    total_messages: number
+    sent: number
+    failed: number
+    pending: number
+    processing: number
+    batches: number
+  }
+  batches: SendHistoryBatch[]
 }

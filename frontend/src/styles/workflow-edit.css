@@ -1156,6 +1156,13 @@
   gap: 0.5rem;
 }
 
+.edit-scheduler-modal__send-date-preview {
+  margin: 0.625rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--brand-700, #1d4ed8);
+}
+
 .edit-scheduler-modal__days-input {
   width: 56px;
   height: 42px;

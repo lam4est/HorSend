@@ -7,6 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const schemaPath = path.join(__dirname, 'schema.sql')
 const alterPath = path.join(__dirname, 'alter.sql')
 const sendQueuePath = path.join(__dirname, '../../../n8n/sql/workflow_send_queue.sql')
+const schedulerLogPath = path.join(__dirname, 'scheduler_send_log.sql')
+const schedulerLogAlterPath = path.join(__dirname, 'scheduler_send_log_alter.sql')
+const schedulerDetailPath = path.join(__dirname, 'scheduler_send_detail.sql')
 
 /** True when the main app tables already exist (workflows, workflow_user, …). */
 export async function hasAppDatabaseSchema (): Promise<boolean> {
@@ -19,9 +22,16 @@ export async function hasAppDatabaseSchema (): Promise<boolean> {
   return rows[0]?.exists === true
 }
 
+async function applySqlFile (filePath: string): Promise<void> {
+  if (!fs.existsSync(filePath)) return
+  await pool.query(fs.readFileSync(filePath, 'utf8'))
+}
+
 async function applySendQueueSchema (): Promise<void> {
-  if (!fs.existsSync(sendQueuePath)) return
-  await pool.query(fs.readFileSync(sendQueuePath, 'utf8'))
+  await applySqlFile(sendQueuePath)
+  await applySqlFile(schedulerLogPath)
+  await applySqlFile(schedulerLogAlterPath)
+  await applySqlFile(schedulerDetailPath)
 }
 
 export async function applyDatabaseSchema (): Promise<void> {
