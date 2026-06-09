@@ -1,0 +1,620 @@
+{
+  "train": [
+    {
+      "prompts": [
+        "Create a 3-step welcome journey: email immediately, SMS after 1 day, follow-up email after 3 days",
+        "Tạo hành trình chào mừng 3 bước: email ngay, SMS sau 1 ngày, email tiếp theo sau 3 ngày",
+        "Welcome new subscribers with email now, SMS reminder after 24 hours, tips email after 3 days",
+        "Chào khách mới: gửi email chào mừng ngay, SMS sau 1 ngày, email hướng dẫn sau 3 ngày"
+      ],
+      "workflow": {
+        "name": "Welcome Journey",
+        "category": "onboarding",
+        "description": "Onboard new contacts with a timed email and SMS sequence.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Welcome Email", "subject": "Welcome aboard!", "body": "<p>Thanks for joining. Explore your dashboard and complete your profile today.</p>"}},
+          {"channel": "sms", "delay_value": 1, "delay_unit": "day", "template": {"name": "Welcome SMS", "subject": "", "body": "Welcome! Open the app to claim your new-user offer."}},
+          {"channel": "email", "delay_value": 3, "delay_unit": "day", "template": {"name": "Getting Started", "subject": "3 tips to get started", "body": "<p>Here are three quick wins to make the most of your account.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Abandoned cart recovery: email after 1 hour, SMS after 24 hours, final email with discount after 72 hours",
+        "Nhắc giỏ hàng bỏ quên: email sau 1 giờ, SMS sau 24 giờ, email ưu đãi sau 72 giờ",
+        "Recover abandoned carts with reminder email after 1 hour, SMS next day, discount email after 3 days",
+        "Khôi phục giỏ hàng: email nhắc sau 1 giờ, SMS sau 1 ngày, email giảm giá sau 3 ngày"
+      ],
+      "workflow": {
+        "name": "Abandoned Cart Recovery",
+        "category": "abandoned_basket",
+        "description": "Recover abandoned checkouts with escalating email and SMS reminders.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 1, "delay_unit": "hour", "template": {"name": "Cart Reminder", "subject": "You left something behind", "body": "<p>Your cart is still waiting. Complete checkout before items sell out.</p>"}},
+          {"channel": "sms", "delay_value": 1, "delay_unit": "day", "template": {"name": "Cart SMS", "subject": "", "body": "Your cart is waiting — finish checkout now!"}},
+          {"channel": "email", "delay_value": 3, "delay_unit": "day", "template": {"name": "Cart Discount", "subject": "10% off to complete your order", "body": "<p>Use code <strong>FINISH10</strong> to complete your purchase today.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Win back inactive customers over 2 weeks with email and SMS reminders and a comeback offer",
+        "Kích hoạt lại khách không hoạt động trong 2 tuần với email, SMS và ưu đãi quay lại",
+        "Re-engage dormant users: email immediately, SMS after 7 days, final email with COMEBACK10 after 14 days",
+        "Chiến dịch win-back: email ngay, SMS sau 7 ngày, email ưu đãi COMEBACK10 sau 14 ngày"
+      ],
+      "workflow": {
+        "name": "Win-back Campaign",
+        "category": "reactivation",
+        "description": "Re-engage inactive customers with a two-week comeback sequence.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "We Miss You", "subject": "We miss you!", "body": "<p>It has been a while. Come back and explore what is new.</p>"}},
+          {"channel": "sms", "delay_value": 7, "delay_unit": "day", "template": {"name": "Comeback SMS", "subject": "", "body": "We miss you! Use COMEBACK10 on your next order."}},
+          {"channel": "email", "delay_value": 14, "delay_unit": "day", "template": {"name": "Final Offer", "subject": "Last chance: 10% off", "body": "<p>Your exclusive <strong>COMEBACK10</strong> code expires soon.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Black Friday campaign: teaser email 1 week before, launch day email and SMS, last-chance reminder after 2 days",
+        "Chiến dịch Black Friday: email teaser trước 1 tuần, email và SMS ngày mở bán, nhắc lần cuối sau 2 ngày",
+        "Seasonal sale workflow: preview email 7 days early, launch email and SMS on day 0, urgency email after 48 hours",
+        "Workflow khuyến mãi: email báo trước 7 ngày, email + SMS khi sale bắt đầu, email nhắc sau 2 ngày"
+      ],
+      "workflow": {
+        "name": "Black Friday Blast",
+        "category": "nurturing",
+        "description": "Drive seasonal sales with a teaser, launch, and last-chance sequence.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 7, "delay_unit": "day", "template": {"name": "Sale Teaser", "subject": "Black Friday is coming", "body": "<p>Get ready — our biggest sale of the year starts soon.</p>"}},
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Launch Email", "subject": "Black Friday is live!", "body": "<p>Shop now and save up to 50% on selected items.</p>"}},
+          {"channel": "sms", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Launch SMS", "subject": "", "body": "Black Friday is ON! Shop now before bestsellers sell out."}},
+          {"channel": "email", "delay_value": 2, "delay_unit": "day", "template": {"name": "Last Chance", "subject": "Final hours — ends tonight", "body": "<p>Last chance to grab Black Friday deals before midnight.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "2-step onboarding: welcome email immediately, SMS with app link after 2 days",
+        "Onboarding 2 bước: email chào mừng ngay, SMS link app sau 2 ngày",
+        "New user onboarding with instant welcome email and SMS nudge after 48 hours",
+        "Chào user mới: email ngay lập tức, SMS nhắc tải app sau 2 ngày"
+      ],
+      "workflow": {
+        "name": "Quick Welcome",
+        "category": "onboarding",
+        "description": "Short onboarding path for new sign-ups.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Welcome Email", "subject": "You are in!", "body": "<p>Your account is ready. Log in and explore.</p>"}},
+          {"channel": "sms", "delay_value": 2, "delay_unit": "day", "template": {"name": "App Nudge", "subject": "", "body": "Download our app for a faster experience — link in your inbox."}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Trial ending soon: email 3 days before expiry, SMS on last day, upgrade email after trial ends",
+        "Sắp hết trial: email trước 3 ngày, SMS ngày cuối, email nâng cấp sau khi hết hạn",
+        "Free trial activation sequence with reminder email, final-day SMS, and conversion email",
+        "Kích hoạt trial: email nhắc trước 3 ngày, SMS ngày hết hạn, email chuyển đổi sau trial"
+      ],
+      "workflow": {
+        "name": "Trial Conversion",
+        "category": "activation",
+        "description": "Convert free-trial users before and after expiry.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 3, "delay_unit": "day", "template": {"name": "Trial Reminder", "subject": "Your trial ends in 3 days", "body": "<p>Upgrade now to keep your data and premium features.</p>"}},
+          {"channel": "sms", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Last Day SMS", "subject": "", "body": "Trial ends today! Upgrade now to avoid losing access."}},
+          {"channel": "email", "delay_value": 1, "delay_unit": "day", "template": {"name": "Post-Trial Offer", "subject": "We saved your workspace", "body": "<p>Your trial ended. Upgrade today with 20% off your first month.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "VIP loyalty reward: email announcing points bonus, SMS reminder after 5 days, reward email after 10 days",
+        "Thưởng VIP: email thông báo điểm thưởng, SMS nhắc sau 5 ngày, email đổi quà sau 10 ngày",
+        "Loyalty program workflow with reward email, mid-week SMS, and redemption reminder",
+        "Chương trình khách hàng thân thiết: email ưu đãi, SMS nhắc, email đổi thưởng"
+      ],
+      "workflow": {
+        "name": "VIP Loyalty Rewards",
+        "category": "loyalty",
+        "description": "Notify VIP members about points and drive redemption.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Points Bonus", "subject": "You earned 500 bonus points", "body": "<p>Redeem your points for exclusive rewards in the loyalty store.</p>"}},
+          {"channel": "sms", "delay_value": 5, "delay_unit": "day", "template": {"name": "Points SMS", "subject": "", "body": "500 bonus points waiting — redeem before they expire!"}},
+          {"channel": "email", "delay_value": 10, "delay_unit": "day", "template": {"name": "Redeem Reminder", "subject": "Do not let your points expire", "body": "<p>Your bonus points expire soon. Choose a reward today.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Subscription renewal: email 7 days before renewal, SMS 1 day before, confirmation email on renewal day",
+        "Gia hạn đăng ký: email trước 7 ngày, SMS trước 1 ngày, email xác nhận ngày gia hạn",
+        "Retention workflow for annual subscribers with pre-renewal email and SMS alerts",
+        "Giữ chân subscriber: email nhắc gia hạn, SMS trước ngày thanh toán, email xác nhận"
+      ],
+      "workflow": {
+        "name": "Subscription Renewal",
+        "category": "retention",
+        "description": "Remind subscribers before automatic renewal.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 7, "delay_unit": "day", "template": {"name": "Renewal Notice", "subject": "Your plan renews in 7 days", "body": "<p>Your subscription renews automatically. Review your plan or update payment details.</p>"}},
+          {"channel": "sms", "delay_value": 1, "delay_unit": "day", "template": {"name": "Renewal SMS", "subject": "", "body": "Reminder: your subscription renews tomorrow."}},
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Renewed", "subject": "Subscription renewed — thank you", "body": "<p>Your subscription has been renewed. Here is your receipt.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Lead nurturing drip: educational email day 0, case study email after 3 days, demo invite email after 7 days",
+        "Nuôi dưỡng lead: email giáo dục ngay, email case study sau 3 ngày, email mời demo sau 7 ngày",
+        "B2B nurture sequence with intro email, social proof email, and meeting request after one week",
+        "Chuỗi nurture B2B: email giới thiệu, email minh chứng sau 3 ngày, email đặt lịch sau 7 ngày"
+      ],
+      "workflow": {
+        "name": "Lead Nurture Drip",
+        "category": "nurturing",
+        "description": "Educate and qualify inbound leads over one week.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Intro Guide", "subject": "Your guide to getting started", "body": "<p>Here is a practical guide to solving your top challenge.</p>"}},
+          {"channel": "email", "delay_value": 3, "delay_unit": "day", "template": {"name": "Case Study", "subject": "How Acme cut costs by 30%", "body": "<p>See how a similar team achieved results in 90 days.</p>"}},
+          {"channel": "email", "delay_value": 7, "delay_unit": "day", "template": {"name": "Demo Invite", "subject": "Book a 15-minute demo", "body": "<p>Ready to see it in action? Pick a time that works for you.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Post-purchase thank you: email immediately after order, review request SMS after 5 days",
+        "Cảm ơn sau mua hàng: email ngay sau đơn, SMS xin đánh giá sau 5 ngày",
+        "Thank customers with instant order email and review SMS five days later",
+        "Sau khi mua: email cảm ơn ngay, SMS nhắc đánh giá sản phẩm sau 5 ngày"
+      ],
+      "workflow": {
+        "name": "Post-Purchase Thanks",
+        "category": "retention",
+        "description": "Thank buyers and collect product reviews.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Order Thanks", "subject": "Thanks for your order!", "body": "<p>Your order is confirmed. We will notify you when it ships.</p>"}},
+          {"channel": "sms", "delay_value": 5, "delay_unit": "day", "template": {"name": "Review Ask", "subject": "", "body": "How was your purchase? Leave a quick review — we read every one!"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Browse abandonment: email after 2 hours with viewed items, SMS after 1 day",
+        "Bỏ quên khi xem sản phẩm: email sau 2 giờ với sản phẩm đã xem, SMS sau 1 ngày",
+        "Remind browsers who viewed products but did not add to cart — email after 2 hours, SMS next day",
+        "Nhắc khách xem nhưng chưa mua: email sau 2 giờ, SMS sau 24 giờ"
+      ],
+      "workflow": {
+        "name": "Browse Abandonment",
+        "category": "abandoned_basket",
+        "description": "Recover interest from product browsers who did not purchase.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 2, "delay_unit": "hour", "template": {"name": "Still Interested?", "subject": "Still thinking about these items?", "body": "<p>The products you viewed are still available. Take another look.</p>"}},
+          {"channel": "sms", "delay_value": 1, "delay_unit": "day", "template": {"name": "Browse SMS", "subject": "", "body": "Items you viewed are selling fast — shop before they are gone!"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Birthday offer workflow: email with birthday discount immediately, SMS reminder after 3 days",
+        "Ưu đãi sinh nhật: email giảm giá ngay, SMS nhắc sau 3 ngày",
+        "Send birthday customers an email offer on day 0 and SMS reminder before offer expires",
+        "Gửi khách sinh nhật: email mã giảm giá ngay, SMS nhắc trước khi hết hạn"
+      ],
+      "workflow": {
+        "name": "Birthday Offer",
+        "category": "loyalty",
+        "description": "Celebrate customer birthdays with a limited-time offer.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Birthday Email", "subject": "Happy birthday — a gift for you", "body": "<p>Use code <strong>BDAY20</strong> for 20% off this week.</p>"}},
+          {"channel": "sms", "delay_value": 3, "delay_unit": "day", "template": {"name": "Birthday SMS", "subject": "", "body": "Birthday offer expires soon! Use BDAY20 today."}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Demo follow-up for qualified leads: thank-you email immediately, SMS scheduling link after 1 day",
+        "Follow-up sau demo cho lead tiềm năng: email cảm ơn ngay, SMS link đặt lịch sau 1 ngày",
+        "After a sales demo send thank-you email now and SMS with booking link tomorrow",
+        "Sau buổi demo: email cảm ơn ngay, SMS gửi link hẹn gọi sau 1 ngày"
+      ],
+      "workflow": {
+        "name": "Demo Follow-up",
+        "category": "qualification",
+        "description": "Follow up after product demos to move leads forward.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Demo Thanks", "subject": "Thanks for joining the demo", "body": "<p>Here is the recap and next steps we discussed.</p>"}},
+          {"channel": "sms", "delay_value": 1, "delay_unit": "day", "template": {"name": "Schedule SMS", "subject": "", "body": "Ready for the next step? Book your onboarding call here."}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "First purchase activation: welcome email now, product tips email after 2 days, SMS check-in after 5 days",
+        "Kích hoạt mua lần đầu: email chào ngay, email mẹo sản phẩm sau 2 ngày, SMS hỏi thăm sau 5 ngày",
+        "Activate first-time buyers with welcome email, tips email, and SMS check-in",
+        "Kích hoạt khách mua lần đầu: email chào, email hướng dẫn, SMS sau 5 ngày"
+      ],
+      "workflow": {
+        "name": "First Purchase Activation",
+        "category": "activation",
+        "description": "Help first-time buyers get value from their purchase.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "First Buy Welcome", "subject": "Welcome — here is how to start", "body": "<p>Thanks for your first order. Follow these steps to get started.</p>"}},
+          {"channel": "email", "delay_value": 2, "delay_unit": "day", "template": {"name": "Product Tips", "subject": "Get more from your purchase", "body": "<p>Three tips to get the best results from your new product.</p>"}},
+          {"channel": "sms", "delay_value": 5, "delay_unit": "day", "template": {"name": "Check-in SMS", "subject": "", "body": "How is everything going? Reply if you need help!"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Churn prevention for declining usage: email with help resources now, SMS with support number after 3 days",
+        "Ngăn churn khi usage giảm: email tài nguyên hỗ trợ ngay, SMS số hotline sau 3 ngày",
+        "Users with dropping activity get help email immediately and support SMS after 72 hours",
+        "Khách dùng ít dần: email gợi ý trợ giúp ngay, SMS liên hệ support sau 3 ngày"
+      ],
+      "workflow": {
+        "name": "Usage Drop Intervention",
+        "category": "reactivation",
+        "description": "Intervene when product usage declines.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Help Resources", "subject": "Need a hand getting back on track?", "body": "<p>We noticed you have been away. Here are resources to help you succeed.</p>"}},
+          {"channel": "sms", "delay_value": 3, "delay_unit": "day", "template": {"name": "Support SMS", "subject": "", "body": "Our team is here to help — reply or call us anytime."}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Points expiry alert: email 14 days before expiry, SMS 3 days before, final email on expiry day",
+        "Cảnh báo điểm hết hạn: email trước 14 ngày, SMS trước 3 ngày, email cuối ngày hết hạn",
+        "Loyalty points expiring soon — email two weeks out, SMS three days out, urgency email on day 0",
+        "Điểm thưởng sắp hết hạn: email nhắc sớm, SMS gấp, email lần cuối"
+      ],
+      "workflow": {
+        "name": "Points Expiry Alert",
+        "category": "loyalty",
+        "description": "Drive redemption before loyalty points expire.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 14, "delay_unit": "day", "template": {"name": "Early Alert", "subject": "Your points expire in 2 weeks", "body": "<p>Redeem your points now for rewards you will love.</p>"}},
+          {"channel": "sms", "delay_value": 3, "delay_unit": "day", "template": {"name": "Urgent SMS", "subject": "", "body": "Points expire in 3 days — redeem now!"}},
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Final Alert", "subject": "Points expire today", "body": "<p>Last chance to use your points before they are gone.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Lead qualification: intro email now, qualification survey email after 2 days, SMS follow-up after 4 days",
+        "Đánh giá lead: email giới thiệu ngay, email khảo sát sau 2 ngày, SMS follow-up sau 4 ngày",
+        "Qualify inbound leads with intro email, survey email, and SMS nudge",
+        "Phân loại lead: email mở đầu, email khảo sát nhu cầu, SMS nhắc hoàn tất"
+      ],
+      "workflow": {
+        "name": "Lead Qualification",
+        "category": "qualification",
+        "description": "Qualify leads with a short survey sequence.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Intro", "subject": "Thanks for your interest", "body": "<p>We would love to learn more about your needs.</p>"}},
+          {"channel": "email", "delay_value": 2, "delay_unit": "day", "template": {"name": "Survey", "subject": "Quick 2-minute survey", "body": "<p>Answer three questions so we can recommend the right plan.</p>"}},
+          {"channel": "sms", "delay_value": 4, "delay_unit": "day", "template": {"name": "Survey Nudge", "subject": "", "body": "Complete your quick survey — it only takes 2 minutes!"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Re-engagement SMS-first: SMS with offer now, email with details after 1 day",
+        "Win-back ưu tiên SMS: gửi SMS ưu đãi ngay, email chi tiết sau 1 ngày",
+        "Reach inactive mobile users with SMS offer immediately and email follow-up next day",
+        "Tiếp cận khách qua SMS trước: SMS ưu đãi ngay, email bổ sung sau 24 giờ"
+      ],
+      "workflow": {
+        "name": "SMS-first Win-back",
+        "category": "reactivation",
+        "description": "Re-engage mobile-first customers via SMS then email.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "sms", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Offer SMS", "subject": "", "body": "We want you back! Use WINBACK15 for 15% off — today only."}},
+          {"channel": "email", "delay_value": 1, "delay_unit": "day", "template": {"name": "Offer Details", "subject": "Your 15% comeback offer", "body": "<p>Use <strong>WINBACK15</strong> on any order this week. Here is what is new.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "RCS rich onboarding: welcome email now, RCS message with product carousel after 1 day",
+        "Onboarding RCS: email chào ngay, tin RCS carousel sản phẩm sau 1 ngày",
+        "Onboard users with email welcome and rich RCS product showcase after 24 hours",
+        "Chào user bằng email, sau 1 ngày gửi RCS giới thiệu sản phẩm nổi bật"
+      ],
+      "workflow": {
+        "name": "RCS Product Showcase",
+        "category": "onboarding",
+        "description": "Combine email welcome with rich RCS product content.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Welcome Email", "subject": "Welcome — here is what is new", "body": "<p>Explore our latest products curated for you.</p>"}},
+          {"channel": "rcs", "delay_value": 1, "delay_unit": "day", "template": {"name": "Product RCS", "subject": "", "body": "Check out this week's top picks — tap to browse."}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Cart recovery with voice follow-up: email after 30 minutes, SMS after 4 hours, voice call after 1 day",
+        "Khôi phục giỏ hàng có gọi thoại: email sau 30 phút, SMS sau 4 giờ, voice sau 1 ngày",
+        "High-value cart abandonment: email in 30 min, SMS in 4 hours, voice reminder next day",
+        "Giỏ hàng giá trị cao: email nhanh, SMS buổi chiều, gọi voice ngày hôm sau"
+      ],
+      "workflow": {
+        "name": "High-Value Cart Recovery",
+        "category": "abandoned_basket",
+        "description": "Escalate abandoned high-value carts across channels.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 30, "delay_unit": "minute", "template": {"name": "Quick Reminder", "subject": "Complete your order", "body": "<p>Your items are reserved for a limited time. Checkout now.</p>"}},
+          {"channel": "sms", "delay_value": 4, "delay_unit": "hour", "template": {"name": "Cart SMS", "subject": "", "body": "Your cart is saved — complete checkout before it expires."}},
+          {"channel": "voice", "delay_value": 1, "delay_unit": "day", "template": {"name": "Voice Follow-up", "subject": "", "body": "Automated voice reminder to complete your pending order."}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Educational nurture for free users: tip email day 0, feature highlight email after 4 days, upgrade email after 10 days",
+        "Nuôi dưỡng user miễn phí: email mẹo ngay, email tính năng sau 4 ngày, email nâng cấp sau 10 ngày",
+        "Free tier nurture with tips, feature spotlight, and upgrade CTA over 10 days",
+        "Chuỗi nurture free: email hướng dẫn, email highlight, email chuyển paid"
+      ],
+      "workflow": {
+        "name": "Free Tier Nurture",
+        "category": "nurturing",
+        "description": "Educate free users and encourage upgrade.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Quick Tip", "subject": "One tip to save time today", "body": "<p>Try this workflow to automate your busiest task.</p>"}},
+          {"channel": "email", "delay_value": 4, "delay_unit": "day", "template": {"name": "Feature Spotlight", "subject": "Did you try this feature?", "body": "<p>Power users love this — here is how to enable it.</p>"}},
+          {"channel": "email", "delay_value": 10, "delay_unit": "day", "template": {"name": "Upgrade CTA", "subject": "Unlock the full experience", "body": "<p>Upgrade to Pro and get unlimited automations.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Renewal risk retention: personal email now, SMS with retention offer after 2 days",
+        "Giữ khách sắp hủy: email cá nhân hóa ngay, SMS ưu đãi giữ chân sau 2 ngày",
+        "Customers at risk of cancelling get personalized email and retention SMS",
+        "Khách có nguy cơ rời bỏ: email ưu đãi đặc biệt, SMS nhắc sau 2 ngày"
+      ],
+      "workflow": {
+        "name": "Cancellation Save",
+        "category": "retention",
+        "description": "Retain customers showing cancellation intent.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Personal Note", "subject": "Before you go — can we help?", "body": "<p>We would hate to see you leave. Here is a special offer to stay.</p>"}},
+          {"channel": "sms", "delay_value": 2, "delay_unit": "day", "template": {"name": "Save Offer SMS", "subject": "", "body": "Stay with us — 30% off your next 3 months. Reply YES to accept."}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Event registration nurture: confirmation email now, reminder SMS 1 day before event, follow-up email 1 day after",
+        "Nuôi dưỡng đăng ký sự kiện: email xác nhận ngay, SMS nhắc trước 1 ngày, email follow-up sau sự kiện",
+        "Webinar registrants get confirm email, reminder SMS, and recap email after the event",
+        "Khách đăng ký webinar: email confirm, SMS nhắc, email tóm tắt sau sự kiện"
+      ],
+      "workflow": {
+        "name": "Event Registration",
+        "category": "nurturing",
+        "description": "Nurture event registrants before and after the event.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Registration Confirmed", "subject": "You are registered!", "body": "<p>Add the event to your calendar. We will send a reminder before it starts.</p>"}},
+          {"channel": "sms", "delay_value": 1, "delay_unit": "day", "template": {"name": "Event Reminder", "subject": "", "body": "Reminder: your event starts tomorrow. Join link in your email."}},
+          {"channel": "email", "delay_value": 1, "delay_unit": "day", "template": {"name": "Event Recap", "subject": "Thanks for attending — watch the replay", "body": "<p>Missed something? Watch the recording and download slides.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Account setup activation: setup guide email now, SMS nudge after 1 day, help email after 3 days if incomplete",
+        "Kích hoạt thiết lập tài khoản: email hướng dẫn ngay, SMS nhắc sau 1 ngày, email hỗ trợ sau 3 ngày",
+        "Incomplete account setup: guide email, SMS reminder, support email after 3 days",
+        "Tài khoản chưa hoàn tất: email hướng dẫn, SMS nhắc, email hỗ trợ sau 3 ngày"
+      ],
+      "workflow": {
+        "name": "Account Setup Completion",
+        "category": "activation",
+        "description": "Drive users to complete account setup.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Setup Guide", "subject": "Finish setting up your account", "body": "<p>Complete these three steps to unlock all features.</p>"}},
+          {"channel": "sms", "delay_value": 1, "delay_unit": "day", "template": {"name": "Setup SMS", "subject": "", "body": "Your account setup is almost done — finish in 2 minutes!"}},
+          {"channel": "email", "delay_value": 3, "delay_unit": "day", "template": {"name": "Setup Help", "subject": "Need help finishing setup?", "body": "<p>Our team can walk you through setup in a 10-minute call.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Referral program launch: announcement email now, SMS with referral link after 2 days, reminder email after 7 days",
+        "Ra mắt chương trình giới thiệu: email thông báo ngay, SMS link giới thiệu sau 2 ngày, email nhắc sau 7 ngày",
+        "Launch referral program with announcement email, SMS link, and week-one reminder",
+        "Chương trình referral: email ra mắt, SMS chia sẻ link, email nhắc tuần đầu"
+      ],
+      "workflow": {
+        "name": "Referral Program Launch",
+        "category": "loyalty",
+        "description": "Promote a new referral program to existing customers.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Referral Launch", "subject": "Refer friends, earn rewards", "body": "<p>Share your link and earn credit for every friend who joins.</p>"}},
+          {"channel": "sms", "delay_value": 2, "delay_unit": "day", "template": {"name": "Referral SMS", "subject": "", "body": "Share your referral link and earn $10 per signup!"}},
+          {"channel": "email", "delay_value": 7, "delay_unit": "day", "template": {"name": "Referral Reminder", "subject": "Your friends are waiting", "body": "<p>You have not shared yet — start earning referral rewards today.</p>"}}
+        ]
+      }
+    }
+  ],
+  "val": [
+    {
+      "prompts": [
+        "Summer sale workflow: preview email 5 days before, launch email and SMS on day 0",
+        "Sale mùa hè: email báo trước 5 ngày, email và SMS khi sale mở"
+      ],
+      "workflow": {
+        "name": "Summer Sale",
+        "category": "nurturing",
+        "description": "Short seasonal promotion sequence.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 5, "delay_unit": "day", "template": {"name": "Preview", "subject": "Summer sale starts Friday", "body": "<p>Mark your calendar — up to 40% off this weekend.</p>"}},
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Launch", "subject": "Summer sale is live", "body": "<p>Shop summer deals before they are gone.</p>"}},
+          {"channel": "sms", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Launch SMS", "subject": "", "body": "Summer sale ON! Shop now for up to 40% off."}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Payment failed retention: email immediately, SMS after 6 hours, final email after 2 days",
+        "Thanh toán thất bại: email ngay, SMS sau 6 giờ, email cuối sau 2 ngày"
+      ],
+      "workflow": {
+        "name": "Payment Recovery",
+        "category": "retention",
+        "description": "Recover failed subscription payments.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Payment Failed", "subject": "Action required: payment failed", "body": "<p>Update your payment method to avoid service interruption.</p>"}},
+          {"channel": "sms", "delay_value": 6, "delay_unit": "hour", "template": {"name": "Payment SMS", "subject": "", "body": "Payment failed — update your card to keep your account active."}},
+          {"channel": "email", "delay_value": 2, "delay_unit": "day", "template": {"name": "Final Notice", "subject": "Account will be suspended soon", "body": "<p>Update payment within 48 hours to avoid losing access.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "New feature announcement: email now, SMS beta invite after 1 day",
+        "Ra mắt tính năng mới: email ngay, SMS mời beta sau 1 ngày"
+      ],
+      "workflow": {
+        "name": "Feature Announcement",
+        "category": "activation",
+        "description": "Announce and drive adoption of a new feature.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "New Feature", "subject": "Introducing Smart Automations", "body": "<p>Build workflows faster with our new AI assistant.</p>"}},
+          {"channel": "sms", "delay_value": 1, "delay_unit": "day", "template": {"name": "Beta SMS", "subject": "", "body": "Try Smart Automations — enable it in Settings today!"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Cold lead re-qualification: email with value prop now, survey email after 5 days",
+        "Tái đánh giá lead lạnh: email giá trị ngay, email khảo sát sau 5 ngày"
+      ],
+      "workflow": {
+        "name": "Cold Lead Re-qualification",
+        "category": "qualification",
+        "description": "Re-engage cold leads with value and a qualification survey.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Value Prop", "subject": "Still looking for a solution?", "body": "<p>Here is how teams like yours save 10 hours per week.</p>"}},
+          {"channel": "email", "delay_value": 5, "delay_unit": "day", "template": {"name": "Re-qualify", "subject": "Are you still interested?", "body": "<p>Tell us your timeline and we will match you with the right plan.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Flash sale 24h: launch email and SMS now, urgency email after 12 hours",
+        "Flash sale 24 giờ: email và SMS ngay, email gấp sau 12 giờ"
+      ],
+      "workflow": {
+        "name": "Flash Sale 24h",
+        "category": "nurturing",
+        "description": "Short flash sale with mid-sale urgency push.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Flash Launch", "subject": "24-hour flash sale starts now", "body": "<p>Everything 30% off — today only.</p>"}},
+          {"channel": "sms", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Flash SMS", "subject": "", "body": "FLASH SALE: 30% off everything — ends tonight!"}},
+          {"channel": "email", "delay_value": 12, "delay_unit": "hour", "template": {"name": "Mid-sale Urgency", "subject": "12 hours left", "body": "<p>Half the sale is gone — shop before midnight.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Wishlist reminder: email after 1 day, SMS after 3 days with price drop alert",
+        "Nhắc wishlist: email sau 1 ngày, SMS báo giảm giá sau 3 ngày"
+      ],
+      "workflow": {
+        "name": "Wishlist Reminder",
+        "category": "abandoned_basket",
+        "description": "Remind customers about saved wishlist items.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 1, "delay_unit": "day", "template": {"name": "Wishlist Email", "subject": "Items on your wishlist", "body": "<p>Good news — items you saved are still in stock.</p>"}},
+          {"channel": "sms", "delay_value": 3, "delay_unit": "day", "template": {"name": "Price Drop SMS", "subject": "", "body": "Price drop on your wishlist item — shop before it sells out!"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Onboarding for mobile app: welcome SMS now, email with tutorial after 1 day",
+        "Onboarding app mobile: SMS chào ngay, email hướng dẫn sau 1 ngày"
+      ],
+      "workflow": {
+        "name": "Mobile App Onboarding",
+        "category": "onboarding",
+        "description": "Mobile-first onboarding with SMS then email tutorial.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "sms", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Welcome SMS", "subject": "", "body": "Welcome to the app! Tap to complete your profile."}},
+          {"channel": "email", "delay_value": 1, "delay_unit": "day", "template": {"name": "Tutorial Email", "subject": "Your 5-minute app tutorial", "body": "<p>Watch this quick guide to master the basics.</p>"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Anniversary reward: email celebrating 1 year now, SMS with gift code after 2 days",
+        "Kỷ niệm 1 năm: email chúc mừng ngay, SMS mã quà sau 2 ngày"
+      ],
+      "workflow": {
+        "name": "Customer Anniversary",
+        "category": "loyalty",
+        "description": "Celebrate customer anniversary with a gift.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 0, "delay_unit": "minute", "template": {"name": "Anniversary", "subject": "Happy 1-year anniversary!", "body": "<p>Thank you for a year with us. Here is a gift to celebrate.</p>"}},
+          {"channel": "sms", "delay_value": 2, "delay_unit": "day", "template": {"name": "Gift SMS", "subject": "", "body": "Your anniversary gift code: ANNIV25 — valid this week!"}}
+        ]
+      }
+    },
+    {
+      "prompts": [
+        "Cross-sell after purchase: related products email after 3 days, SMS after 7 days",
+        "Bán chéo sau mua: email sản phẩm liên quan sau 3 ngày, SMS sau 7 ngày"
+      ],
+      "workflow": {
+        "name": "Cross-sell Sequence",
+        "category": "retention",
+        "description": "Recommend complementary products after a purchase.",
+        "contact_list_id": null,
+        "steps": [
+          {"channel": "email", "delay_value": 3, "delay_unit": "day", "template": {"name": "Cross-sell Email", "subject": "Pairs perfectly with your order", "body": "<p>Customers who bought this also loved these add-ons.</p>"}},
+          {"channel": "sms", "delay_value": 7, "delay_unit": "day", "template": {"name": "Cross-sell SMS", "subject": "", "body": "Complete your setup — see recommended add-ons in your inbox."}}
+        ]
+      }
+    }
+  ]
+}
