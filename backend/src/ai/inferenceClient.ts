@@ -1,6 +1,7 @@
 import type { WorkflowDraft } from './workflowSchema.js'
 import { workflowDraftSchema } from './workflowSchema.js'
 import { generateMockWorkflow } from './mockGenerator.js'
+import { expandWorkflowSteps } from './workflowExpand.js'
 
 const INFERENCE_URL = (process.env.ML_INFERENCE_URL ?? 'http://127.0.0.1:8001').replace(/\/$/, '')
 const TIMEOUT_MS = Number(process.env.ML_INFERENCE_TIMEOUT_MS ?? 60000)
@@ -50,13 +51,17 @@ export async function generateWorkflowDraft (
   if (!USE_MOCK) {
     const inferred = await callInference(prompt, context, locale)
     if (inferred) {
-      return { draft: inferred, source: 'inference', warnings }
+      return {
+        draft: expandWorkflowSteps(inferred, prompt, locale),
+        source: 'inference',
+        warnings
+      }
     }
     warnings.push('Inference service unavailable — using rule-based generator.')
   }
 
   return {
-    draft: generateMockWorkflow(prompt, locale),
+    draft: expandWorkflowSteps(generateMockWorkflow(prompt, locale), prompt, locale),
     source: 'mock',
     warnings
   }

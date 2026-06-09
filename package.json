@@ -13,6 +13,7 @@
     "db:seed": "pnpm --filter backend db:seed",
     "db:setup": "pnpm db:migrate && pnpm db:seed",
     "ml:dataset": "python3 ml/scripts/build_dataset.py",
+    "ml:feedback": "python3 ml/scripts/export_feedback.py --output ml/dataset/feedback_export.jsonl && python3 ml/scripts/build_dataset.py",
     "ml:eval": "python3 ml/scripts/evaluate.py",
     "ml:serve": "cd ml && python3 -m uvicorn inference.server:app --host 127.0.0.1 --port 8001"
   }

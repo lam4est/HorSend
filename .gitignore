@@ -48,6 +48,7 @@ ml/adapters/*
 !ml/adapters/.gitkeep
 
 # Python ML env & bytecode
+.venv  
 ml/.venv/
 venv/
 .venv/

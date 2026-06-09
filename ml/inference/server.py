@@ -10,9 +10,13 @@ from pydantic import BaseModel, Field
 from .model_loader import (
     adapters_available,
     enrich_templates,
+    generate_template_with_model,
     generate_with_model,
+    rule_based_template,
     rule_based_workflow,
+    template_adapter_available,
 )
+from .workflow_expand import expand_workflow
 
 app = FastAPI(title="Campaign Workflow ML Inference", version="1.0.0")
 
@@ -33,10 +37,14 @@ class GenerateTemplateRequest(BaseModel):
 
 @app.get("/health")
 def health() -> dict[str, Any]:
+    wf = adapters_available()
+    tpl = template_adapter_available()
+    mode = "lora" if wf else "rule_based"
     return {
         "ok": True,
-        "adapters_available": adapters_available(),
-        "mode": "lora" if adapters_available() else "rule_based",
+        "adapters_available": wf,
+        "template_adapter_available": tpl,
+        "mode": mode,
     }
 
 
@@ -47,36 +55,28 @@ def generate_workflow(req: GenerateWorkflowRequest) -> dict[str, Any]:
     if workflow is None:
         workflow = rule_based_workflow(req.prompt, req.locale)
         source = "rule_based"
+    workflow = expand_workflow(workflow, req.prompt, req.locale)
     workflow = enrich_templates(workflow, req.locale)
     return {"workflow": workflow, "source": source}
 
 
 @app.post("/generate/template")
 def generate_template(req: GenerateTemplateRequest) -> dict[str, Any]:
-    vi = req.locale == "vi"
-    ch = req.channel.lower()
-    if ch == "email":
-        subjects = {
-            "welcome": "Chào mừng!" if vi else "Welcome!",
-            "cart reminder": "Hoàn tất đơn hàng" if vi else "Complete your order",
-        }
-        subject = subjects.get(req.intent, "Hello" if not vi else "Xin chào")
-        body = (
-            "<p>Nội dung email tự động.</p>"
-            if vi
-            else "<p>Automated email content.</p>"
+    template = generate_template_with_model(
+        intent=req.intent,
+        channel=req.channel,
+        workflow_name=req.workflow_name,
+        step_index=req.step_index,
+        locale=req.locale,
+    )
+    source = "lora"
+    if template is None:
+        template = rule_based_template(
+            req.intent,
+            req.channel,
+            req.workflow_name,
+            req.step_index,
+            req.locale,
         )
-    else:
-        subject = ""
-        body = "Tin nhắn SMS." if vi else "SMS message content."
-        if len(body) > 160:
-            body = body[:157] + "..."
-
-    return {
-        "template": {
-            "name": f"{req.intent} {ch}",
-            "subject": subject,
-            "body": body,
-        },
-        "source": "rule_based",
-    }
+        source = "rule_based"
+    return {"template": template, "source": source}

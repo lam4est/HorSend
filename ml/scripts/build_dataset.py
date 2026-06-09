@@ -1,294 +1,286 @@
 #!/usr/bin/env python3
-"""Build workflow-structure and template-content JSONL datasets from canonical examples."""
+"""Build workflow-structure and template-content JSONL datasets from curated + catalog sources."""
 
 from __future__ import annotations
 
 import json
 import random
+import sys
+from collections import Counter
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+
+from dataset_utils import prompt_key, to_jsonl_line, workflow_user_message
+from prompt_generator import prompt_for_delay_variant, prompts_from_workflow
+from workflow_catalog import generate_catalog_items, jitter_workflow
+
+ROOT = SCRIPT_DIR.parent
 DATASET = ROOT / "dataset"
+CURATED_PATH = DATASET / "curated_workflows.json"
+FEEDBACK_PATH = DATASET / "feedback_export.jsonl"
 SEED_PATH = ROOT.parent / "backend" / "data" / "seed.json"
 
-CHANNELS = ["email", "sms", "rcs", "voice", "voice_sms"]
-CATEGORIES = [
-    "onboarding",
-    "abandoned_basket",
-    "reactivation",
-    "loyalty",
-    "retention",
-    "nurturing",
-    "activation",
-    "qualification",
-]
+VALID_CHANNELS = {"email", "sms", "rcs", "voice", "voice_sms"}
+VALID_UNITS = {"minute", "hour", "day"}
+MIN_STEPS = 2
 
-CANONICAL = [
-    {
-        "prompts": [
-            "Welcome new users: email immediately, SMS after 1 day",
-            "Tạo workflow chào mừng: email ngay, SMS sau 1 ngày",
-            "3-step welcome journey with email and SMS",
-        ],
-        "workflow": {
-            "name": "Welcome Journey",
-            "category": "onboarding",
-            "description": "Welcome new contacts with timed email and SMS.",
-            "contact_list_id": None,
-            "steps": [
-                {
-                    "channel": "email",
-                    "delay_value": 0,
-                    "delay_unit": "minute",
-                    "template": {
-                        "name": "Welcome Email",
-                        "subject": "Welcome aboard!",
-                        "body": "<p>Thanks for joining us. Start exploring today.</p>",
-                    },
-                },
-                {
-                    "channel": "sms",
-                    "delay_value": 1,
-                    "delay_unit": "day",
-                    "template": {
-                        "name": "Welcome SMS",
-                        "subject": "",
-                        "body": "Welcome! Open the app to claim your offer.",
-                    },
-                },
-            ],
-        },
-    },
-    {
-        "prompts": [
-            "Abandoned cart: email after 1 hour, SMS after 24 hours",
-            "Nhắc giỏ hàng: email sau 1 giờ, SMS sau 24 giờ",
-            "Cart recovery with discount email after 72 hours",
-        ],
-        "workflow": {
-            "name": "Abandoned Cart Recovery",
-            "category": "abandoned_basket",
-            "description": "Recover abandoned carts with timed reminders.",
-            "contact_list_id": None,
-            "steps": [
-                {
-                    "channel": "email",
-                    "delay_value": 1,
-                    "delay_unit": "hour",
-                    "template": {
-                        "name": "Cart Reminder Email",
-                        "subject": "You left something behind",
-                        "body": "<p>Your cart is waiting. Complete checkout now.</p>",
-                    },
-                },
-                {
-                    "channel": "sms",
-                    "delay_value": 1,
-                    "delay_unit": "day",
-                    "template": {
-                        "name": "Cart SMS",
-                        "subject": "",
-                        "body": "Your cart is waiting — checkout now!",
-                    },
-                },
-            ],
-        },
-    },
-    {
-        "prompts": [
-            "Win back inactive users with email and SMS over 2 weeks",
-            "Kích hoạt lại khách không hoạt động với ưu đãi quay lại",
-        ],
-        "workflow": {
-            "name": "Win-back Campaign",
-            "category": "reactivation",
-            "description": "Re-engage inactive customers with a comeback offer.",
-            "contact_list_id": None,
-            "steps": [
-                {
-                    "channel": "email",
-                    "delay_value": 0,
-                    "delay_unit": "minute",
-                    "template": {
-                        "name": "We miss you",
-                        "subject": "We miss you!",
-                        "body": "<p>Come back and use code <strong>COMEBACK10</strong>.</p>",
-                    },
-                },
-                {
-                    "channel": "sms",
-                    "delay_value": 7,
-                    "delay_unit": "day",
-                    "template": {
-                        "name": "Comeback SMS",
-                        "subject": "",
-                        "body": "We miss you! Use COMEBACK10 on your next order.",
-                    },
-                },
-            ],
-        },
-    },
-]
+# Expansion knobs
+CATALOG_VARIANTS_PER_ARCHETYPE = 3
+JITTER_PROBABILITY = 0.4
 
 
-def workflow_user_message(prompt: str) -> str:
-    ctx = f"Channels: {','.join(CHANNELS)}\nCategories: {','.join(CATEGORIES)}\n\nPrompt: {prompt}"
-    return ctx
+def load_feedback_lines() -> list[str]:
+    if not FEEDBACK_PATH.exists():
+        return []
+    return [line.strip() for line in FEEDBACK_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def to_jsonl_line(user: str, assistant_obj: dict) -> str:
-    return json.dumps(
-        {
-            "messages": [
-                {"role": "user", "content": user},
-                {"role": "assistant", "content": json.dumps(assistant_obj, ensure_ascii=False)},
-            ]
-        },
-        ensure_ascii=False,
-    )
+def load_curated() -> tuple[list[dict], list[dict]]:
+    if not CURATED_PATH.exists():
+        raise SystemExit(f"Missing curated dataset: {CURATED_PATH}")
+    data = json.loads(CURATED_PATH.read_text(encoding="utf-8"))
+    return data.get("train", []), data.get("val", [])
 
 
-def augment_workflow(wf: dict) -> dict:
-    """Light augmentation: vary delays slightly."""
-    out = json.loads(json.dumps(wf))
-    for step in out.get("steps", []):
-        if step["delay_value"] > 0 and random.random() < 0.3:
-            step["delay_value"] = max(1, step["delay_value"] + random.choice([-1, 1]))
-    return out
+def validate_workflow(wf: dict) -> list[str]:
+    errors: list[str] = []
+    steps = wf.get("steps")
+    if not isinstance(steps, list) or len(steps) < MIN_STEPS:
+        errors.append(f"need >= {MIN_STEPS} steps, got {len(steps) if isinstance(steps, list) else 0}")
+        return errors
+    for i, step in enumerate(steps):
+        if step.get("channel") not in VALID_CHANNELS:
+            errors.append(f"step {i} invalid channel")
+        if step.get("delay_unit") not in VALID_UNITS:
+            errors.append(f"step {i} invalid delay_unit")
+        tpl = step.get("template") or {}
+        if not tpl.get("name") or not tpl.get("body"):
+            errors.append(f"step {i} missing template content")
+    return errors
 
 
-def build_workflow_dataset(target_train: int = 120, val_ratio: float = 0.15) -> None:
+def collect_prompts(item: dict, wf: dict, include_auto: bool = True) -> list[str]:
+    """Merge hand-written and auto-generated prompts for one workflow."""
+    prompts: list[str] = list(item.get("prompts", []))
+    if include_auto:
+        prompts.extend(prompts_from_workflow(wf))
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    unique: list[str] = []
+    for p in prompts:
+        key = p.strip().lower()
+        if key not in seen:
+            seen.add(key)
+            unique.append(p)
+    return unique
+
+
+def workflow_to_lines(
+    item: dict,
+    rng: random.Random,
+    include_auto_prompts: bool = True,
+    allow_jitter: bool = True,
+) -> list[str]:
+    wf = item["workflow"]
+    errors = validate_workflow(wf)
+    if errors:
+        name = wf.get("name", "?")
+        raise SystemExit(f"Invalid workflow '{name}': {', '.join(errors)}")
+
     lines: list[str] = []
-    for item in CANONICAL:
-        for prompt in item["prompts"]:
-            wf = augment_workflow(item["workflow"])
-            lines.append(to_jsonl_line(workflow_user_message(prompt), wf))
-
-    # Synthetic variations
-    templates = [
-        ("Create {cat} workflow with email only", "email", 0, "minute"),
-        ("{cat} journey: SMS after {d} days", "sms", 2, "day"),
-        ("{cat}: email now then email after {d} hours", "email", 4, "hour"),
-    ]
-    for _ in range(target_train - len(lines)):
-        cat = random.choice(CATEGORIES)
-        tpl, ch, dv, du = random.choice(templates)
-        prompt = tpl.format(cat=cat.replace("_", " "), d=random.randint(1, 5))
-        wf = {
-            "name": f"{cat.replace('_', ' ').title()} Flow",
-            "category": cat,
-            "description": f"AI-style {cat} workflow.",
-            "contact_list_id": None,
-            "steps": [
-                {
-                    "channel": ch,
-                    "delay_value": dv,
-                    "delay_unit": du,
-                    "template": {
-                        "name": f"{ch.upper()} step",
-                        "subject": "Hello!" if ch == "email" else "",
-                        "body": "<p>Automated message.</p>"
-                        if ch == "email"
-                        else "Your update is ready.",
-                    },
-                }
-            ],
-        }
-        if random.random() < 0.4:
-            wf["steps"].append(
-                {
-                    "channel": "sms" if ch == "email" else "email",
-                    "delay_value": random.randint(1, 3),
-                    "delay_unit": "day",
-                    "template": {
-                        "name": "Follow-up",
-                        "subject": "Follow up",
-                        "body": "Follow up with your customer.",
-                    },
-                }
-            )
+    for prompt in collect_prompts(item, wf, include_auto=include_auto_prompts):
         lines.append(to_jsonl_line(workflow_user_message(prompt), wf))
 
-    random.shuffle(lines)
-    split = int(len(lines) * (1 - val_ratio))
-    train, val = lines[:split], lines[split:]
+        if allow_jitter and rng.random() < JITTER_PROBABILITY:
+            variant_wf = jitter_workflow(wf, rng)
+            en_prompt = prompt_for_delay_variant(variant_wf, "en")
+            vi_prompt = prompt_for_delay_variant(variant_wf, "vi")
+            for vp in (en_prompt, vi_prompt):
+                lines.append(to_jsonl_line(workflow_user_message(vp), variant_wf))
 
-    DATASET.mkdir(parents=True, exist_ok=True)
-    (DATASET / "workflow-structure.train.jsonl").write_text("\n".join(train) + "\n", encoding="utf-8")
-    (DATASET / "workflow-structure.val.jsonl").write_text("\n".join(val) + "\n", encoding="utf-8")
-    print(f"workflow-structure: {len(train)} train, {len(val)} val")
+    return lines
 
 
-def build_template_dataset(target_train: int = 350, val_ratio: float = 0.15) -> None:
+def merge_deduped_lines(primary: list[str], secondary: list[str]) -> list[str]:
+    seen: set[str] = set()
+    merged: list[str] = []
+    for line in primary + secondary:
+        row = json.loads(line)
+        key = prompt_key(row["messages"][0]["content"])
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(line)
+    return merged
+
+
+def templates_from_workflows(workflow_lines: list[str]) -> list[str]:
     lines: list[str] = []
-    intents = [
-        ("welcome", "email", "Welcome!", "<p>Thanks for signing up.</p>"),
-        ("cart reminder", "email", "Complete your order", "<p>Items still in your cart.</p>"),
-        ("cart reminder", "sms", "", "Your cart is waiting!"),
-        ("win back", "email", "We miss you", "<p>Use COMEBACK10 today.</p>"),
-        ("win back", "sms", "", "Come back for 10% off!"),
-        ("loyalty", "email", "VIP reward inside", "<p>Exclusive offer for you.</p>"),
-    ]
-    for intent, channel, subject, body in intents:
-        for i in range(25):
-            user = json.dumps(
-                {
-                    "intent": intent,
-                    "channel": channel,
-                    "workflow_name": "Sample",
-                    "step_index": i % 3,
-                    "locale": "en" if i % 2 == 0 else "vi",
-                }
-            )
-            assistant = json.dumps(
-                {
-                    "name": f"{intent.title()} {channel}",
-                    "subject": subject,
-                    "body": body,
-                },
-                ensure_ascii=False,
-            )
-            lines.append(
-                json.dumps(
+    intent_map = {
+        "onboarding": "welcome",
+        "abandoned_basket": "cart reminder",
+        "reactivation": "win back",
+        "loyalty": "loyalty",
+        "retention": "retention",
+        "nurturing": "welcome",
+        "activation": "welcome",
+        "qualification": "welcome",
+    }
+    seen_tpl: set[str] = set()
+
+    for line in workflow_lines:
+        row = json.loads(line)
+        prompt_text = row["messages"][0]["content"].split("Prompt: ", 1)[-1]
+        locale = "vi" if any(ord(c) > 127 for c in prompt_text) else "en"
+        wf = json.loads(row["messages"][1]["content"])
+        intent = intent_map.get(wf.get("category", ""), "welcome")
+
+        for i, step in enumerate(wf.get("steps", [])):
+            tpl = step.get("template") or {}
+            if not tpl.get("body"):
+                continue
+
+            for loc in {locale, "en", "vi"}:
+                user = json.dumps(
                     {
-                        "messages": [
-                            {"role": "user", "content": f"[TEMPLATE]\n{user}"},
-                            {"role": "assistant", "content": assistant},
-                        ]
+                        "intent": intent,
+                        "channel": step.get("channel", "email"),
+                        "workflow_name": wf.get("name", ""),
+                        "step_index": i,
+                        "locale": loc,
                     },
                     ensure_ascii=False,
                 )
-            )
+                assistant = json.dumps(
+                    {
+                        "name": tpl.get("name", f"Step {i + 1}"),
+                        "subject": tpl.get("subject", ""),
+                        "body": tpl.get("body", ""),
+                    },
+                    ensure_ascii=False,
+                )
+                dedupe = user + assistant
+                if dedupe in seen_tpl:
+                    continue
+                seen_tpl.add(dedupe)
+                lines.append(
+                    json.dumps(
+                        {
+                            "messages": [
+                                {"role": "user", "content": f"[TEMPLATE]\n{user}"},
+                                {"role": "assistant", "content": assistant},
+                            ]
+                        },
+                        ensure_ascii=False,
+                    )
+                )
+    return lines
 
-    while len(lines) < target_train:
-        intent, channel, subject, body = random.choice(intents)
-        user = json.dumps({"intent": intent, "channel": channel, "step_index": 0, "locale": "en"})
-        assistant = json.dumps({"name": intent, "subject": subject, "body": body})
-        lines.append(
-            json.dumps(
-                {
-                    "messages": [
-                        {"role": "user", "content": f"[TEMPLATE]\n{user}"},
-                        {"role": "assistant", "content": assistant},
-                    ]
-                }
-            )
+
+def print_quality_report(label: str, lines: list[str]) -> None:
+    step_counts: Counter[int] = Counter()
+    categories: Counter[str] = Counter()
+    channels: Counter[str] = Counter()
+
+    for line in lines:
+        wf = json.loads(json.loads(line)["messages"][1]["content"])
+        step_counts[len(wf.get("steps", []))] += 1
+        categories[wf.get("category", "?")] += 1
+        for step in wf.get("steps", []):
+            channels[step.get("channel", "?")] += 1
+
+    avg_steps = sum(k * v for k, v in step_counts.items()) / max(len(lines), 1)
+    print(f"\n{label} quality report ({len(lines)} samples):")
+    print(f"  avg steps: {avg_steps:.2f}")
+    print(f"  step distribution: {dict(sorted(step_counts.items()))}")
+    print(f"  categories: {dict(sorted(categories.items()))}")
+    print(f"  channels: {dict(sorted(channels.items()))}")
+
+
+def build_workflow_dataset(rng: random.Random) -> tuple[list[str], list[str]]:
+    curated_train, curated_val = load_curated()
+    catalog_items = generate_catalog_items(variants_per_archetype=CATALOG_VARIANTS_PER_ARCHETYPE)
+
+    train_lines: list[str] = []
+
+    for item in curated_train:
+        train_lines.extend(
+            workflow_to_lines(item, rng, include_auto_prompts=True, allow_jitter=True)
         )
 
+    catalog_count_before = len(train_lines)
+    for item in catalog_items:
+        train_lines.extend(
+            workflow_to_lines(item, rng, include_auto_prompts=True, allow_jitter=True)
+        )
+    print(
+        f"Catalog expansion: {len(catalog_items)} workflows → "
+        f"{len(train_lines) - catalog_count_before} samples"
+    )
+
+    val_lines: list[str] = []
+    for item in curated_val:
+        val_lines.extend(
+            workflow_to_lines(item, rng, include_auto_prompts=True, allow_jitter=False)
+        )
+
+    feedback = load_feedback_lines()
+    if feedback:
+        before = len(train_lines)
+        train_lines = merge_deduped_lines(feedback, train_lines)
+        print(f"Merged {len(feedback)} feedback samples ({len(train_lines) - before} net new)")
+    else:
+        train_lines = merge_deduped_lines([], train_lines)
+
+    val_lines = merge_deduped_lines([], val_lines)
+
+    DATASET.mkdir(parents=True, exist_ok=True)
+    (DATASET / "workflow-structure.train.jsonl").write_text(
+        "\n".join(train_lines) + ("\n" if train_lines else ""),
+        encoding="utf-8",
+    )
+    (DATASET / "workflow-structure.val.jsonl").write_text(
+        "\n".join(val_lines) + ("\n" if val_lines else ""),
+        encoding="utf-8",
+    )
+
+    print(f"workflow-structure: {len(train_lines)} train, {len(val_lines)} val")
+    print_quality_report("train", train_lines)
+    print_quality_report("val", val_lines)
+    return train_lines, val_lines
+
+
+def build_template_dataset(train_lines: list[str], val_lines: list[str]) -> None:
+    lines = templates_from_workflows(train_lines + val_lines)
+    print(f"template-content from workflows: {len(lines)} samples")
+
     random.shuffle(lines)
-    split = int(len(lines) * (1 - val_ratio))
+    val_ratio = 0.15
+    split = max(1, int(len(lines) * (1 - val_ratio)))
     train, val = lines[:split], lines[split:]
-    (DATASET / "template-content.train.jsonl").write_text("\n".join(train) + "\n", encoding="utf-8")
-    (DATASET / "template-content.val.jsonl").write_text("\n".join(val) + "\n", encoding="utf-8")
+
+    (DATASET / "template-content.train.jsonl").write_text(
+        "\n".join(train) + ("\n" if train else ""),
+        encoding="utf-8",
+    )
+    (DATASET / "template-content.val.jsonl").write_text(
+        "\n".join(val) + ("\n" if val else ""),
+        encoding="utf-8",
+    )
     print(f"template-content: {len(train)} train, {len(val)} val")
 
 
 def main() -> None:
-    random.seed(42)
+    rng = random.Random(42)
     if SEED_PATH.exists():
         print(f"Seed file found: {SEED_PATH}")
-    build_workflow_dataset()
-    build_template_dataset()
+    if FEEDBACK_PATH.exists():
+        print(f"Feedback file: {FEEDBACK_PATH}")
+
+    train_lines, val_lines = build_workflow_dataset(rng)
+    build_template_dataset(train_lines, val_lines)
     print("Done.")
 
 
