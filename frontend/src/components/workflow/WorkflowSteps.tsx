@@ -7,19 +7,19 @@ import WorkflowStepItem from './WorkflowStepItem'
 type WorkflowStepsProps = {
   steps: WorkflowStepForm[]
   expandedStepLocalId: string | null
+  isAiWorkflow: boolean
   onToggleExpand: (localId: string | null) => void
   onStepChange: (localId: string, patch: Partial<WorkflowStepForm>) => void
   onToggleEnabled: (localId: string, isEnabled: boolean) => void
-  onConfirm: (localId: string, stepId: number | null) => void
 }
 
 export default function WorkflowSteps ({
   steps,
   expandedStepLocalId,
+  isAiWorkflow,
   onToggleExpand,
   onStepChange,
-  onToggleEnabled,
-  onConfirm
+  onToggleEnabled
 }: WorkflowStepsProps) {
   const [templatesByChannel, setTemplatesByChannel] = useState<Record<string, Awaited<ReturnType<typeof api.templates>>['items']>>({})
   const channelKey = [...new Set(steps.map((s) => s.channel))].sort().join(',')
@@ -59,13 +59,13 @@ export default function WorkflowSteps ({
             key={step.localId}
             step={step}
             isExpanded={expandedStepLocalId === step.localId}
+            isAiWorkflow={isAiWorkflow}
             templates={templatesByChannel[step.channel] ?? []}
             onToggleExpand={() =>
               onToggleExpand(expandedStepLocalId === step.localId ? null : step.localId)
             }
             onStepChange={onStepChange}
             onToggleEnabled={onToggleEnabled}
-            onConfirm={onConfirm}
           />
         ))}
       </div>

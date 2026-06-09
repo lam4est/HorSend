@@ -218,12 +218,6 @@ export default function WorkflowEditModal ({
     })
   }
 
-  async function handleConfirm (localId: string, stepId: number | null) {
-    if (!stepId) return
-    await api.confirmStep(stepId)
-    updateStep(localId, { isConfirmedByUser: true })
-  }
-
   async function close () {
     if (saveTimer.current) {
       await flushSave()
@@ -250,7 +244,15 @@ export default function WorkflowEditModal ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="workflow-modal-header">
-          <h2 className="workflow-modal-header__title">{t('campaign_workflow.edit_modal.title')}</h2>
+          <div className="workflow-modal-header__title-row">
+            <h2 className="workflow-modal-header__title">{t('campaign_workflow.edit_modal.title')}</h2>
+            {workflow.source === 'ai' ? (
+              <span className="workflow-ai-badge">
+                <i className="fa fa-magic" aria-hidden="true" />
+                {t('campaign_workflow.ai_badge')}
+              </span>
+            ) : null}
+          </div>
           <button
             type="button"
             className="workflow-modal-header__close"
@@ -335,12 +337,12 @@ export default function WorkflowEditModal ({
                 <WorkflowSteps
                   steps={data.steps}
                   expandedStepLocalId={expandedStepLocalId}
+                  isAiWorkflow={workflow.source === 'ai'}
                   onToggleExpand={setExpandedStepLocalId}
                   onStepChange={updateStep}
                   onToggleEnabled={(localId, isEnabled) =>
                     updateStep(localId, { isEnabled: !isEnabled })
                   }
-                  onConfirm={(localId, stepId) => void handleConfirm(localId, stepId)}
                 />
               </div>
             </>
@@ -383,7 +385,7 @@ export function buildWorkflowSavePayload (workflow: WorkflowItem, data: Workflow
           step.delayInMinutes ??
           convertToMinutes(step.delayValue || DEFAULT_DELAY_VALUE, step.delayUnit || DEFAULT_DELAY_UNIT),
         excluded_contact_ids: step.excludedSegmentIds,
-        is_confirmed_by_user: step.isConfirmedByUser,
+        is_confirmed_by_user: true,
         settings: null
       }
       if (

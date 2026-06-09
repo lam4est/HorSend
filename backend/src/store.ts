@@ -42,6 +42,7 @@ type WorkflowUserRow = {
   name: string
   category: string | null
   description: string
+  source: string
 }
 
 type StepUserRow = {
@@ -81,6 +82,7 @@ async function serializeWorkflow (wu: WorkflowUserRow, stepRows: StepUserRow[]) 
     category: wu.category ?? '',
     description: wu.description,
     is_active: wu.is_active,
+    source: wu.source,
     steps
   }
 }
@@ -90,7 +92,8 @@ async function loadWorkflowUser (userId: number, workflowUserId: number) {
     `SELECT wu.id, wu.workflow_id, wu.is_active,
             w.workflow_name AS name,
             w.category,
-            COALESCE(w.description, '') AS description
+            COALESCE(w.description, '') AS description,
+            COALESCE(w.source, 'system') AS source
      FROM workflow_user wu
      JOIN workflows w ON w.id = wu.workflow_id
      WHERE wu.id = $1 AND wu.user_id = $2`,
@@ -716,7 +719,7 @@ export const db = {
           `INSERT INTO workflow_step_user (
              user_id, workflow_user_id, workflow_step_id, channel, delay_in_minutes,
              template_id, is_active, is_confirmed_by_user, settings, created_at, updated_at
-           ) VALUES ($1, $2, $3, $4, $5, $6, TRUE, FALSE, $7::json, NOW(), NOW())`,
+           ) VALUES ($1, $2, $3, $4, $5, $6, TRUE, TRUE, $7::json, NOW(), NOW())`,
           [
             userId,
             workflowUserId,

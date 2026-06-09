@@ -25,6 +25,7 @@ function WorkflowCard ({
   const [editWorkflow, setEditWorkflow] = useState<WorkflowItem | null>(null)
   const [checked, setChecked] = useState(workflow.is_active)
   const hasDescription = Boolean(workflow.description?.trim())
+  const isAiCreated = workflow.source === 'ai'
   const categoryLabel =
     (en.campaign_workflow.categories as Record<string, string>)[workflow.category] ??
     workflow.category
@@ -57,6 +58,12 @@ function WorkflowCard ({
             <span className={`category-badge category-${workflow.category}`}>
               {categoryLabel}
             </span>
+            {isAiCreated ? (
+              <span className="workflow-ai-badge">
+                <i className="fa fa-magic" aria-hidden="true" />
+                {t('campaign_workflow.ai_badge')}
+              </span>
+            ) : null}
             <span className="steps-count">
               {t('campaign_workflow.steps', { count: workflow.steps.length })}
             </span>
@@ -91,8 +98,17 @@ function WorkflowCard ({
         <div className="workflow-footer">
           <div className="workflow-steps">
             {workflow.steps.map((step) => (
-              <span key={step.workflow_step_id} className={`step-icon ${step.channel}`}>
+              <span
+                key={step.workflow_step_id}
+                className={`step-icon ${step.channel}${isAiCreated ? ' step-icon--ai' : ''}`}
+                title={isAiCreated ? t('campaign_workflow.edit_modal.ai_step_badge') : undefined}
+              >
                 <i className={CHANNEL_ICON_MAP[step.channel] ?? 'fas fa-circle'} aria-hidden="true" />
+                {isAiCreated ? (
+                  <span className="step-icon__ai-dot" aria-hidden="true">
+                    <i className="fa fa-magic" />
+                  </span>
+                ) : null}
               </span>
             ))}
           </div>
@@ -133,6 +149,7 @@ export default memo(WorkflowCard, (prev, next) => {
     prev.workflow.name === next.workflow.name &&
     prev.workflow.description === next.workflow.description &&
     prev.workflow.category === next.workflow.category &&
+    prev.workflow.source === next.workflow.source &&
     prev.workflow.steps.length === next.workflow.steps.length
   )
 })

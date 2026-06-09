@@ -42,6 +42,7 @@ export type WorkflowItem = {
   category: string
   description: string
   is_active: boolean
+  source: string
   steps: Array<{ workflow_step_id: number; channel: string; step_order: number }>
 }
 
@@ -128,8 +129,6 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(body)
     }),
-  confirmStep: (stepUserId: number) =>
-    request<{ ok: boolean }>(`/api/workflow-step-users/${stepUserId}/confirm`, { method: 'POST' }),
   aiGenerateWorkflow: (body: { prompt: string; locale?: 'en' | 'vi' }) =>
     request<AiGenerateResponse>('/api/workflows/ai/generate', {
       method: 'POST',
