@@ -18,8 +18,16 @@ export async function handleAiGenerate (req: Request, res: Response, userId: num
     return
   }
 
-  const { prompt, locale = 'en' } = parsed.data
+  const { prompt, locale = 'en', contact_list_id: contactListId = null } = parsed.data
   const contactLists = await db.listContactLists(userId)
+
+  if (contactListId != null) {
+    const found = contactLists.items.some((list) => list.id === contactListId)
+    if (!found) {
+      res.status(400).json({ error: 'Contact list not found' })
+      return
+    }
+  }
 
   const result = await generateWorkflowDraft(
     prompt,
@@ -33,6 +41,7 @@ export async function handleAiGenerate (req: Request, res: Response, userId: num
 
   const draft = {
     ...result.draft,
+    contact_list_id: contactListId,
     steps: result.draft.steps.map((step) => ({
       ...step,
       template: {

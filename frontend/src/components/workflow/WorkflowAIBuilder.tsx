@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, type AiHealthResponse, type AiInferenceSource, type AiWorkflowDraft, type WorkflowItem } from '../../api'
+import {
+  api,
+  type AiHealthResponse,
+  type AiInferenceSource,
+  type AiWorkflowDraft,
+  type ContactList,
+  type WorkflowItem
+} from '../../api'
 import { CHANNEL_ICON_MAP, CHANNEL_NAME_MAP } from '../../constants/campaignWorkflow'
 import { t } from '../../i18n/en'
 import Modal from '../common/Modal'
@@ -74,6 +81,16 @@ function generatePhaseLabel (phase: GeneratePhase): string {
   return t('campaign_workflow.ai.generate_progress_finalize')
 }
 
+function recipientsLabel (
+  contactLists: ContactList[],
+  contactListId: number | null | undefined
+): string {
+  if (contactListId == null) return t('campaign_workflow.edit_modal.all_contacts')
+  const list = contactLists.find((item) => item.id === contactListId)
+  if (!list) return t('campaign_workflow.edit_modal.select_contact_list')
+  return `${list.name} (${list.contacts_count} ${t('campaign_workflow.edit_modal.contacts')})`
+}
+
 export default function WorkflowAIBuilder ({ open, onClose, onCreated }: WorkflowAIBuilderProps) {
   const [builderStep, setBuilderStep] = useState<BuilderStep>('describe')
   const [prompt, setPrompt] = useState('')
@@ -87,6 +104,9 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
   const [source, setSource] = useState<AiInferenceSource>('rule_based')
   const [expandedStep, setExpandedStep] = useState(0)
   const [engineHealth, setEngineHealth] = useState<AiHealthResponse | null>(null)
+  const [contactLists, setContactLists] = useState<ContactList[]>([])
+  const [useAllContacts, setUseAllContacts] = useState(true)
+  const [contactListId, setContactListId] = useState<number | null>(null)
   const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const reset = useCallback(() => {
@@ -98,7 +118,14 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
     setWarnings([])
     setExpandedStep(0)
     setGeneratePhase('check')
+    setUseAllContacts(true)
+    setContactListId(null)
   }, [])
+
+  function syncDraftContactList (nextUseAll: boolean, nextListId: number | null) {
+    const id = nextUseAll ? null : nextListId
+    setDraft((current) => (current ? { ...current, contact_list_id: id } : current))
+  }
 
   function handleClose () {
     reset()
@@ -137,6 +164,15 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
 
     void pollHealth()
 
+    void api
+      .contactLists()
+      .then((res) => {
+        if (!cancelled) setContactLists(res.items)
+      })
+      .catch(() => {
+        if (!cancelled) setContactLists([])
+      })
+
     return () => {
       cancelled = true
     }
@@ -148,8 +184,16 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
     }
   }, [])
 
+  const canGenerate =
+    prompt.trim().length >= 3 && (useAllContacts || contactListId != null)
+
   async function handleGenerate () {
-    if (prompt.trim().length < 3) return
+    if (!canGenerate) {
+      if (!useAllContacts && contactListId == null) {
+        setError(t('campaign_workflow.ai.contact_list_required'))
+      }
+      return
+    }
     setBusy(true)
     setError(null)
     setGeneratePhase('check')
@@ -163,11 +207,23 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
     }, 8000)
 
     try {
-      const res = await api.aiGenerateWorkflow({ prompt: prompt.trim(), locale })
+      const selectedContactListId = useAllContacts ? null : contactListId
+      const res = await api.aiGenerateWorkflow({
+        prompt: prompt.trim(),
+        locale,
+        contact_list_id: selectedContactListId
+      })
       setDraft(res.workflow)
       setDraftId(res.draft_id)
       setWarnings(res.warnings)
       setSource(res.source)
+      if (selectedContactListId != null) {
+        setUseAllContacts(false)
+        setContactListId(selectedContactListId)
+      } else {
+        setUseAllContacts(true)
+        setContactListId(null)
+      }
       setBuilderStep('preview')
       setExpandedStep(0)
       void api.aiHealth().then(setEngineHealth).catch(() => {})
@@ -195,6 +251,10 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
 
   async function handleConfirm () {
     if (!draft) return
+    if (!useAllContacts && draft.contact_list_id == null) {
+      setError(t('campaign_workflow.ai.contact_list_required'))
+      return
+    }
     setBusy(true)
     setError(null)
     try {
@@ -245,7 +305,7 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
             <button
               type="button"
               className="enroll-btn enroll-btn--primary"
-              disabled={busy || prompt.trim().length < 3}
+              disabled={busy || !canGenerate}
               onClick={() => void handleGenerate()}
             >
               {busy ? t('campaign_workflow.ai.generating') : t('campaign_workflow.ai.generate')}
@@ -263,7 +323,15 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
             <button
               type="button"
               className="enroll-btn enroll-btn--primary"
-              onClick={() => setBuilderStep('confirm')}
+              disabled={!useAllContacts && draft?.contact_list_id == null}
+              onClick={() => {
+                if (!useAllContacts && draft?.contact_list_id == null) {
+                  setError(t('campaign_workflow.ai.contact_list_required'))
+                  return
+                }
+                setError(null)
+                setBuilderStep('confirm')
+              }}
             >
               {t('campaign_workflow.ai.continue')}
             </button>
@@ -333,6 +401,53 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
                 </select>
               </label>
             </div>
+            <div className="workflow-ai__recipients">
+              <span className="workflow-ai__recipients-label">
+                {t('campaign_workflow.edit_modal.recipients')}
+              </span>
+              <div className="edit-scheduler-modal__toggle-row">
+                <button
+                  type="button"
+                  className={`edit-scheduler-modal__toggle${useAllContacts ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    setUseAllContacts(true)
+                    setContactListId(null)
+                    syncDraftContactList(true, null)
+                  }}
+                >
+                  {t('campaign_workflow.edit_modal.all_contacts')}
+                </button>
+                <button
+                  type="button"
+                  className={`edit-scheduler-modal__toggle${!useAllContacts ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    setUseAllContacts(false)
+                    syncDraftContactList(false, contactListId)
+                  }}
+                >
+                  {t('campaign_workflow.edit_modal.my_contact_lists')}
+                </button>
+              </div>
+              {!useAllContacts ? (
+                <select
+                  className="workflow-ai__contact-select"
+                  value={contactListId ?? ''}
+                  onChange={(e) => {
+                    const nextId = e.target.value ? Number(e.target.value) : null
+                    setContactListId(nextId)
+                    syncDraftContactList(false, nextId)
+                  }}
+                >
+                  <option value="">{t('campaign_workflow.edit_modal.select_contact_list')}</option>
+                  {contactLists.map((list) => (
+                    <option key={list.id} value={list.id}>
+                      {list.name} ({list.contacts_count}{' '}
+                      {t('campaign_workflow.edit_modal.contacts')})
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+            </div>
             <div className="workflow-ai__chips">
               {QUICK_PROMPTS.map((chip) => (
                 <button
@@ -360,10 +475,60 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
             <header className="workflow-ai__draft-header">
               <h3>{draft.name}</h3>
               <p>{draft.description}</p>
-              <span className="workflow-ai__badge">
-                {t('campaign_workflow.ai.source')}: {sourceLabel(source)}
-              </span>
+              <div className="workflow-ai__meta">
+                <span className="workflow-ai__badge">
+                  {t('campaign_workflow.ai.source')}: {sourceLabel(source)}
+                </span>
+                <span className="workflow-ai__badge">
+                  {t('campaign_workflow.edit_modal.recipients')}:{' '}
+                  {recipientsLabel(contactLists, draft.contact_list_id)}
+                </span>
+              </div>
             </header>
+            <div className="workflow-ai__recipients workflow-ai__recipients--compact">
+              <span className="workflow-ai__recipients-label">
+                {t('campaign_workflow.edit_modal.recipients')}
+              </span>
+              <div className="edit-scheduler-modal__toggle-row">
+                <button
+                  type="button"
+                  className={`edit-scheduler-modal__toggle${useAllContacts ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    setUseAllContacts(true)
+                    setContactListId(null)
+                    setDraft({ ...draft, contact_list_id: null })
+                  }}
+                >
+                  {t('campaign_workflow.edit_modal.all_contacts')}
+                </button>
+                <button
+                  type="button"
+                  className={`edit-scheduler-modal__toggle${!useAllContacts ? ' is-selected' : ''}`}
+                  onClick={() => setUseAllContacts(false)}
+                >
+                  {t('campaign_workflow.edit_modal.my_contact_lists')}
+                </button>
+              </div>
+              {!useAllContacts ? (
+                <select
+                  className="workflow-ai__contact-select"
+                  value={draft.contact_list_id ?? contactListId ?? ''}
+                  onChange={(e) => {
+                    const nextId = e.target.value ? Number(e.target.value) : null
+                    setContactListId(nextId)
+                    setDraft({ ...draft, contact_list_id: nextId })
+                  }}
+                >
+                  <option value="">{t('campaign_workflow.edit_modal.select_contact_list')}</option>
+                  {contactLists.map((list) => (
+                    <option key={list.id} value={list.id}>
+                      {list.name} ({list.contacts_count}{' '}
+                      {t('campaign_workflow.edit_modal.contacts')})
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+            </div>
             {warnings.length > 0 ? (
               <ul className="workflow-ai__warnings">
                 {warnings.map((w) => (
@@ -459,6 +624,10 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
                     .map((s) => `${CHANNEL_NAME_MAP[s.channel] ?? s.channel} (${delayLabel(s)})`)
                     .join(' → ')}
                 </dd>
+              </div>
+              <div>
+                <dt>{t('campaign_workflow.edit_modal.recipients')}</dt>
+                <dd>{recipientsLabel(contactLists, draft.contact_list_id)}</dd>
               </div>
             </dl>
             <p className="workflow-ai__note">{t('campaign_workflow.ai.inactive_note')}</p>

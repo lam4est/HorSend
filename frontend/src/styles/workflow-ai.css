@@ -32,6 +32,39 @@
   margin-bottom: 12px;
 }
 
+.workflow-ai__recipients {
+  margin-bottom: 14px;
+}
+
+.workflow-ai__recipients--compact {
+  margin-top: 14px;
+  margin-bottom: 0;
+}
+
+.workflow-ai__recipients-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.workflow-ai__contact-select {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-family: inherit;
+  font-size: 0.875rem;
+  background: #fff;
+}
+
+.workflow-ai__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .workflow-ai__locale label {
   display: flex;
   flex-direction: column;

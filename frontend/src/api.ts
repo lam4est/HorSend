@@ -141,7 +141,11 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(body)
     }),
-  aiGenerateWorkflow: (body: { prompt: string; locale?: 'en' | 'vi' }) =>
+  aiGenerateWorkflow: (body: {
+    prompt: string
+    locale?: 'en' | 'vi'
+    contact_list_id?: number | null
+  }) =>
     request<AiGenerateResponse>('/api/workflows/ai/generate', {
       method: 'POST',
       body: JSON.stringify(body)

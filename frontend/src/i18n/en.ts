@@ -81,6 +81,7 @@ export const en = {
       generate_progress_check: 'Connecting to AI engine…',
       generate_progress_design: 'Designing your journey…',
       generate_progress_finalize: 'Finalizing steps and templates…',
+      contact_list_required: 'Select a contact list or choose All contacts.',
       template_body: 'Message content',
       immediate: 'Immediately',
       confirm_lead: 'Review your AI-generated workflow before adding it to campaigns.',

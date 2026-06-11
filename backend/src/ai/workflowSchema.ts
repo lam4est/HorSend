@@ -41,7 +41,8 @@ export const workflowDraftSchema = z.object({
 
 export const aiGenerateRequestSchema = z.object({
   prompt: z.string().min(3).max(4000),
-  locale: z.enum(['en', 'vi']).optional()
+  locale: z.enum(['en', 'vi']).optional(),
+  contact_list_id: z.number().int().positive().nullable().optional()
 })
 
 export const aiConfirmRequestSchema = z.object({
