@@ -12,6 +12,42 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-app_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-app_db}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ml-inference:
+    build: ./ml
+    ports:
+      - '8001:8001'
+    environment:
+      ML_WARMUP: 'false'
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  ai-service:
+    build: ./ai-service
+    ports:
+      - '8002:8002'
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      AI_SERVICE_PORT: 8002
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-app_db}
+      ML_INFERENCE_URL: http://ml-inference:8001
+      AI_SERVICE_KEY: ${AI_SERVICE_KEY:-dev-ai-service-key}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ml-inference:
+        condition: service_healthy
 
 volumes:
   postgres_data:

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CHANNELS } from '../../constants/channels'
 import { CHANNEL_ICON_MAP, CHANNEL_NAME_MAP } from '../../constants/campaignWorkflow'
 import type { MessageTemplate } from '../../api'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import {
   applyDelayParts,
   getDelayBadge,
@@ -13,22 +13,23 @@ import TemplatePreview from './TemplatePreview'
 type WorkflowStepItemProps = {
   step: WorkflowStepForm
   isExpanded: boolean
+  isAiWorkflow: boolean
   templates: MessageTemplate[]
   onToggleExpand: () => void
   onStepChange: (localId: string, patch: Partial<WorkflowStepForm>) => void
   onToggleEnabled: (localId: string, isEnabled: boolean) => void
-  onConfirm: (localId: string, stepId: number | null) => void
 }
 
 export default function WorkflowStepItem ({
   step,
   isExpanded,
+  isAiWorkflow,
   templates,
   onToggleExpand,
   onStepChange,
-  onToggleEnabled,
-  onConfirm
+  onToggleEnabled
 }: WorkflowStepItemProps) {
+  const { t } = useI18n()
   const [templateError, setTemplateError] = useState<string | null>(null)
   const channelIcon = CHANNEL_ICON_MAP[step.channel] ?? 'fas fa-circle'
   const channelClass = step.channel === 'voice_sms' ? 'voice' : step.channel
@@ -59,9 +60,7 @@ export default function WorkflowStepItem ({
       <div
         className={`workflow-step-item${isExpanded ? ' workflow-step-item--expanded' : ''}${
           !step.isEnabled ? ' workflow-step-item--disabled' : ''
-        }${!step.isConfirmedByUser ? ' workflow-step-item--unconfirmed' : ''}${
-          templateError ? ' workflow-step-item--error' : ''
-        }`}
+        }${templateError ? ' workflow-step-item--error' : ''}`}
       >
         <div className="workflow-step-item__content" onClick={onToggleExpand} role="button" tabIndex={0}>
           <span className="workflow-step-item__delay-badge">{getDelayBadge(step)}</span>
@@ -79,23 +78,11 @@ export default function WorkflowStepItem ({
           </div>
         </div>
         <div className="workflow-step-item__actions">
-          {!step.isConfirmedByUser ? (
+          {isAiWorkflow ? (
             <span className="workflow-step-item__ai-badge">
               <i className="fa fa-magic workflow-step-item__ai-icon" />
-              {t('campaign_workflow.edit_modal.generated_by_ai')}
+              {t('campaign_workflow.edit_modal.ai_step_badge')}
             </span>
-          ) : null}
-          {!step.isConfirmedByUser ? (
-            <button
-              type="button"
-              className="workflow-step-item__validate-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                onConfirm(step.localId, step.id)
-              }}
-            >
-              <i className="fa fa-check" />
-            </button>
           ) : null}
           <label className="workflow-step-item__toggle" onClick={(e) => e.stopPropagation()}>
             <input

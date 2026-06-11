@@ -1,4 +1,4 @@
-import { t } from '../../i18n/en'
+import { useI18n } from '../../i18n'
 
 type WorkflowHeaderProps = {
   filteredCount: number
@@ -6,6 +6,7 @@ type WorkflowHeaderProps = {
 }
 
 export default function WorkflowHeader ({ filteredCount, total }: WorkflowHeaderProps) {
+  const { t } = useI18n()
   return (
     <div className="workflows-header">
       <p className="workflows-count">

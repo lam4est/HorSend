@@ -70,10 +70,54 @@ Dùng prefix trong message commit, ví dụ: `feat: thêm lọc workflow theo ca
 ## Cấu trúc
 
 ```
-backend/   API Express (+ cron Auto Scheduler, + /api/n8n/* cho Workflow)
-frontend/  React
-n8n/       Workflow JSON (chỉ Campaign Workflow)
+backend/     API Express (+ cron Auto Scheduler, + /api/n8n/*, proxy /api/workflows/ai/*)
+ai-service/  AI microservice — generate, feedback, ai_generation_log (port 8002)
+frontend/    React
+ml/          Dataset, LoRA training, ML inference FastAPI (port 8001)
+n8n/         Workflow JSON (chỉ Campaign Workflow)
 ```
+
+## AI Workflow Builder
+
+Tạo workflow mới từ prompt + sinh nội dung template (email/SMS). Kiến trúc 3 tầng:
+
+```
+Frontend → Backend :3000 → AI Service :8002 → ML Inference :8001
+                ↓ confirm workflow
+            PostgreSQL (workflows)
+AI Service → PostgreSQL (ai_generation_log)
+```
+
+| Thành phần | Mô tả |
+|------------|--------|
+| UI | Nút **Create with AI** trên trang Workflows |
+| Backend API | `POST /api/workflows/ai/generate`, `/confirm`, `/feedback` (proxy tới ai-service) |
+| AI Service | `ai-service/` — port **8002**, owns `ai_generation_log` |
+| ML Inference | `ml/inference/server.py` — port **8001**, LoRA + rule-based fallback |
+
+```bash
+# Terminal 1: ML inference
+pnpm ml:serve
+
+# Terminal 2: AI microservice
+pnpm ai:serve
+
+# Terminal 3: Backend + frontend
+pnpm dev
+
+# Hoặc Docker (postgres + ml-inference + ai-service)
+docker compose up -d postgres ml-inference ai-service
+```
+
+```bash
+# .env (backend + ai-service)
+AI_SERVICE_URL=http://127.0.0.1:8002
+AI_SERVICE_KEY=change-me-in-production
+ML_INFERENCE_URL=http://127.0.0.1:8001   # ai-service reads this
+ML_USE_MOCK=false
+```
+
+Workflow AI được tạo với `is_active: false` — xác nhận từng step trong editor trước khi bật.
 
 ## Campaign Auto Scheduler — cron trong backend (không dùng n8n)
 

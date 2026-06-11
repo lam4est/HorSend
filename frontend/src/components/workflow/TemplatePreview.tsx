@@ -1,6 +1,6 @@
 import type { MessageTemplate } from '../../api'
 import { CHANNELS } from '../../constants/channels'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 
 type TemplatePreviewProps = {
   channel: string
@@ -27,6 +27,7 @@ function sanitizeHtml (html: string): string {
 }
 
 function PreviewEmpty () {
+  const { t } = useI18n()
   return (
     <div className="template-preview template-preview--empty">
       <div className="template-preview__empty-icon" aria-hidden="true">
@@ -48,6 +49,7 @@ function EmailPreview ({
   emailFromName?: string
   emailFromAddress?: string
 }) {
+  const { t } = useI18n()
   const body = template.body ?? ''
   const subject = emailSubject?.trim() || template.title || template.name
   const fromName = emailFromName?.trim() || 'Your Brand'
@@ -108,6 +110,7 @@ function PhonePreview ({
   channel: string
   smsSenderId?: string
 }) {
+  const { t } = useI18n()
   const body = template.body ?? ''
   const plain = stripHtml(body) || template.title || template.name
   const sender = smsSenderId?.trim() || template.name || 'Messages'

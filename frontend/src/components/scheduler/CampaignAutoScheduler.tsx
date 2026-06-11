@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import { useGsapPinSplit, useGsapReveal } from '../../hooks/useGsapReveal'
 import ApiAlert from '../common/ApiAlert'
 import ChannelMarquee from '../common/ChannelMarquee'
@@ -17,9 +17,14 @@ import RoiCalculatorSection from './RoiCalculatorSection'
 import SchedulerHero from './SchedulerHero'
 
 export default function CampaignAutoScheduler () {
+  const { t, locale } = useI18n()
   const pinRef = useGsapPinSplit('.scheduler-pin__aside', '.scheduler-pin__scroll')
   const roiRef = useGsapReveal<HTMLElement>()
-  const [calendar, setCalendar] = useState<SchedulerMonthView[]>([])
+  const [rawApi, setRawApi] = useState<Parameters<typeof buildSchedulerCalendar>[0] | null>(null)
+  const calendar = useMemo(
+    () => (rawApi ? buildSchedulerCalendar(rawApi) : []),
+    [rawApi, locale]
+  )
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [apiWarning, setApiWarning] = useState<string | null>(null)
@@ -30,14 +35,14 @@ export default function CampaignAutoScheduler () {
   const reload = useCallback(async () => {
     setApiWarning(null)
     const data = await api.scheduler()
-    setCalendar(buildSchedulerCalendar(data))
+    setRawApi(data)
   }, [])
 
   useEffect(() => {
     setLoading(true)
     reload()
       .catch((err) => {
-        setCalendar(buildSchedulerCalendar({ items: [] }))
+        setRawApi({ items: [] })
         setApiWarning(err instanceof Error ? err.message : t('global.api_error'))
       })
       .finally(() => setLoading(false))
@@ -49,12 +54,30 @@ export default function CampaignAutoScheduler () {
   )
 
   function patchEvent (eventId: number, patch: Partial<SchedulerEventView>) {
-    setCalendar((prev) =>
-      prev.map((month) => ({
-        ...month,
-        events: month.events.map((ev) => (ev.id === eventId ? { ...ev, ...patch } : ev))
-      }))
-    )
+    setRawApi((prev) => {
+      if (!prev) return prev
+      return {
+        items: prev.items.map((month) => ({
+          ...month,
+          events: month.events.map((ev) =>
+            ev.id === eventId
+              ? {
+                  ...ev,
+                  subscribed: patch.isActive ?? ev.subscribed,
+                  channel: patch.channel ?? ev.channel,
+                  template_id: patch.templateId !== undefined ? patch.templateId : ev.template_id,
+                  contact_list_id:
+                    patch.contactListId !== undefined ? patch.contactListId : ev.contact_list_id,
+                  hour: patch.hour ?? ev.hour,
+                  minute: patch.minute ?? ev.minute,
+                  days_before: patch.daysBefore ?? ev.days_before,
+                  contacts_count: patch.contactsCount ?? ev.contacts_count
+                }
+              : ev
+          )
+        }))
+      }
+    })
   }
 
   async function saveSubscription (

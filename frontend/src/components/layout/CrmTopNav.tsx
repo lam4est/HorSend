@@ -1,4 +1,6 @@
+import { useI18n } from '../../i18n'
 import BrandLogo from './BrandLogo'
+import LocaleSwitcher from './LocaleSwitcher'
 
 type CrmTopNavProps = {
   pageTitle: string
@@ -11,6 +13,8 @@ export default function CrmTopNav ({
   availableCredit = '27367.00',
   onCreateCampaign
 }: CrmTopNavProps) {
+  const { t } = useI18n()
+
   return (
     <header className="crm-top-nav" role="banner">
       <div className="crm-top-nav__left">
@@ -20,19 +24,22 @@ export default function CrmTopNav ({
 
       <div className="crm-top-nav__right">
         <div className="credit-group">
-          <div className="credit-pill" title="SMS credit balance">
+          <div className="credit-pill" title={t('layout.sms_credit_balance')}>
             <i className="fa-solid fa-wallet credit-pill__icon" aria-hidden="true" />
-            <span className="credit-pill__text">Available credit : {availableCredit} SMS</span>
+            <span className="credit-pill__text">
+              {t('layout.available_credit', { amount: availableCredit })}
+            </span>
             <span className="credit-pill__flag" aria-label="France" title="France">
               FR
             </span>
           </div>
           <button type="button" className="btn-create" onClick={onCreateCampaign}>
-            Create campaign
+            {t('layout.create_campaign')}
           </button>
         </div>
 
         <div className="utilities" aria-label="Toolbar">
+          <LocaleSwitcher />
           <button type="button" className="icon-hit" aria-label="Settings">
             <i className="fa-solid fa-gear utility-icon" aria-hidden="true" />
           </button>

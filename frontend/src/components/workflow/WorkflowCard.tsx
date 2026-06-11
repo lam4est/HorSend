@@ -1,7 +1,7 @@
 import { memo, useEffect, useState } from 'react'
 import type { WorkflowItem } from '../../api'
 import { CHANNEL_ICON_MAP } from '../../constants/campaignWorkflow'
-import { en, t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import WorkflowEditModal, { type WorkflowEditData } from './WorkflowEditModal'
 
 type WorkflowCardProps = {
@@ -21,12 +21,14 @@ function WorkflowCard ({
   onSave,
   onEditClosed
 }: WorkflowCardProps) {
+  const { t, messages } = useI18n()
   const [editOpen, setEditOpen] = useState(false)
   const [editWorkflow, setEditWorkflow] = useState<WorkflowItem | null>(null)
   const [checked, setChecked] = useState(workflow.is_active)
   const hasDescription = Boolean(workflow.description?.trim())
+  const isAiCreated = workflow.source === 'ai'
   const categoryLabel =
-    (en.campaign_workflow.categories as Record<string, string>)[workflow.category] ??
+    (messages.campaign_workflow.categories as Record<string, string>)[workflow.category] ??
     workflow.category
 
   useEffect(() => {
@@ -57,6 +59,12 @@ function WorkflowCard ({
             <span className={`category-badge category-${workflow.category}`}>
               {categoryLabel}
             </span>
+            {isAiCreated ? (
+              <span className="workflow-ai-badge">
+                <i className="fa fa-magic" aria-hidden="true" />
+                {t('campaign_workflow.ai_badge')}
+              </span>
+            ) : null}
             <span className="steps-count">
               {t('campaign_workflow.steps', { count: workflow.steps.length })}
             </span>
@@ -91,8 +99,17 @@ function WorkflowCard ({
         <div className="workflow-footer">
           <div className="workflow-steps">
             {workflow.steps.map((step) => (
-              <span key={step.workflow_step_id} className={`step-icon ${step.channel}`}>
+              <span
+                key={step.workflow_step_id}
+                className={`step-icon ${step.channel}${isAiCreated ? ' step-icon--ai' : ''}`}
+                title={isAiCreated ? t('campaign_workflow.edit_modal.ai_step_badge') : undefined}
+              >
                 <i className={CHANNEL_ICON_MAP[step.channel] ?? 'fas fa-circle'} aria-hidden="true" />
+                {isAiCreated ? (
+                  <span className="step-icon__ai-dot" aria-hidden="true">
+                    <i className="fa fa-magic" />
+                  </span>
+                ) : null}
               </span>
             ))}
           </div>
@@ -133,6 +150,7 @@ export default memo(WorkflowCard, (prev, next) => {
     prev.workflow.name === next.workflow.name &&
     prev.workflow.description === next.workflow.description &&
     prev.workflow.category === next.workflow.category &&
+    prev.workflow.source === next.workflow.source &&
     prev.workflow.steps.length === next.workflow.steps.length
   )
 })

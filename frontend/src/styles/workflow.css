@@ -301,6 +301,32 @@
   margin-bottom: 12px;
 }
 
+.workflow-card .workflow-category {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.workflow-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill, 999px);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--surface-2, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
+  border: 1px solid var(--border-subtle, #e5e7eb);
+}
+
+.workflow-ai-badge .fa-magic {
+  font-size: 9px;
+  color: var(--brand-600, #2563eb);
+}
+
 .workflow-card .category-badge {
   padding: 6px 12px;
   border-radius: 6px;
@@ -361,7 +387,6 @@
 .workflow-card .steps-count {
   font-size: 13px;
   color: #9ca3af;
-  margin-left: 12px;
 }
 
 .workflow-card .workflow-toggle {
@@ -462,6 +487,7 @@
 }
 
 .workflow-card .step-icon {
+  position: relative;
   width: 36px;
   height: 36px;
   display: inline-flex;
@@ -473,6 +499,23 @@
   transition:
     transform var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.workflow-card .step-icon__ai-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--surface-1, #fff);
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  color: var(--brand-600, #2563eb);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
 }
 
 .workflow-card .step-icon:hover {
@@ -538,7 +581,7 @@
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
-  z-index: 300;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;

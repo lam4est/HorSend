@@ -1,6 +1,6 @@
 import { CAMPAIGN_CALENDAR, COST_PER_MSG, DEFAULT_HOUR, DEFAULT_MINUTE } from '../constants/campaignAutoScheduler'
 import { CHANNELS } from '../constants/channels'
-import { t } from '../i18n/en'
+import { t } from '../i18n'
 
 export type SchedulerEventView = {
   id: number

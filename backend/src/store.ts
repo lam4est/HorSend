@@ -1,4 +1,6 @@
 import { pool } from './db/pool.js'
+import type { WorkflowDraft } from './ai/workflowSchema.js'
+import { delayToMinutes, sanitizeTemplateBody } from './ai/workflowSchema.js'
 
 const MONTH_KEYS = [
   'january', 'february', 'march', 'april', 'may', 'june',
@@ -39,6 +41,7 @@ type WorkflowUserRow = {
   name: string
   category: string | null
   description: string
+  source: string
 }
 
 type StepUserRow = {
@@ -78,6 +81,7 @@ async function serializeWorkflow (wu: WorkflowUserRow, stepRows: StepUserRow[]) 
     category: wu.category ?? '',
     description: wu.description,
     is_active: wu.is_active,
+    source: wu.source,
     steps
   }
 }
@@ -87,7 +91,8 @@ async function loadWorkflowUser (userId: number, workflowUserId: number) {
     `SELECT wu.id, wu.workflow_id, wu.is_active,
             w.workflow_name AS name,
             w.category,
-            COALESCE(w.description, '') AS description
+            COALESCE(w.description, '') AS description,
+            COALESCE(w.source, 'system') AS source
      FROM workflow_user wu
      JOIN workflows w ON w.id = wu.workflow_id
      WHERE wu.id = $1 AND wu.user_id = $2`,
@@ -142,7 +147,9 @@ export const db = {
     }>(
       `SELECT id, workflow_name AS name, category, description
        FROM workflows
-       ORDER BY id`
+       WHERE owner_id IS NULL OR owner_id = $1
+       ORDER BY id`,
+      [userId]
     )
     return {
       items: rows.map((t) => ({
@@ -601,5 +608,137 @@ export const db = {
       )
     }
     return { ok: true }
+  },
+
+  async createContentTemplate (
+    client: import('pg').PoolClient,
+    userId: number,
+    channel: string,
+    name: string,
+    subject: string,
+    body: string
+  ): Promise<number> {
+    const key = normalizeChannel(channel)
+    const cleanBody = sanitizeTemplateBody(key, body)
+    const result = await client.query<{ id: number }>(
+      `INSERT INTO content_template (name, channel, subject, body, owner_id, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+       RETURNING id`,
+      [name, key, subject, cleanBody, userId]
+    )
+    return result.rows[0]!.id
+  },
+
+  async createWorkflowFromDraft (userId: number, draft: WorkflowDraft) {
+    if (!draft.steps.length) return { error: 'Workflow must have at least one step' as const }
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      const nextWorkflowId = await client.query<{ id: number }>(
+        'SELECT COALESCE(MAX(id), 0) + 1 AS id FROM workflows'
+      )
+      const workflowId = nextWorkflowId.rows[0]!.id
+
+      const nextStepBase = await client.query<{ id: number }>(
+        'SELECT COALESCE(MAX(id), 0) AS id FROM workflow_step'
+      )
+      let nextStepId = nextStepBase.rows[0]!.id
+
+      await client.query(
+        `INSERT INTO workflows (
+           id, workflow_key, workflow_name, category, description,
+           owner_id, source, created_at, updated_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, 'ai', NOW(), NOW())`,
+        [
+          workflowId,
+          `ai-workflow-${workflowId}`,
+          draft.name,
+          draft.category,
+          draft.description,
+          userId
+        ]
+      )
+
+      const stepIds: number[] = []
+      for (let i = 0; i < draft.steps.length; i++) {
+        const step = draft.steps[i]!
+        nextStepId += 1
+        stepIds.push(nextStepId)
+        await client.query(
+          `INSERT INTO workflow_step (
+             id, workflow_id, status, step_order, channel, delay_value, delay_unit, created_at, updated_at
+           ) VALUES ($1, $2, 1, $3, $4, $5, $6, NOW(), NOW())`,
+          [nextStepId, workflowId, i + 1, step.channel, step.delay_value, step.delay_unit]
+        )
+      }
+
+      const wuInsert = await client.query<{ id: number }>(
+        `INSERT INTO workflow_user (
+           user_id, workflow_id, original_workflow_id, is_active, segment_id, created_at, updated_at
+         ) VALUES ($1, $2, $2, FALSE, $3, NOW(), NOW())
+         RETURNING id`,
+        [userId, workflowId, draft.contact_list_id ?? null]
+      )
+      const workflowUserId = wuInsert.rows[0]!.id
+
+      for (let i = 0; i < draft.steps.length; i++) {
+        const step = draft.steps[i]!
+        const workflowStepId = stepIds[i]!
+        const subject =
+          step.channel === 'email'
+            ? (step.email_subject ?? step.template.subject ?? step.template.name)
+            : ''
+        const templateId = await db.createContentTemplate(
+          client,
+          userId,
+          step.channel,
+          step.template.name,
+          subject,
+          step.template.body
+        )
+
+        const delayMinutes = delayToMinutes(step.delay_value, step.delay_unit)
+        let settings: string | null = null
+        if (step.channel === 'email') {
+          settings = JSON.stringify({
+            subject: step.email_subject ?? step.template.subject ?? null,
+            nameFrom: step.email_from_name ?? null,
+            emailFrom: step.email_from_address ?? null,
+            emailingService: null
+          })
+        } else if (step.channel === 'sms' || step.channel === 'rcs') {
+          if (step.sms_sender_id?.trim()) {
+            settings = JSON.stringify({ senderId: step.sms_sender_id.trim() })
+          }
+        }
+
+        await client.query(
+          `INSERT INTO workflow_step_user (
+             user_id, workflow_user_id, workflow_step_id, channel, delay_in_minutes,
+             template_id, is_active, is_confirmed_by_user, settings, created_at, updated_at
+           ) VALUES ($1, $2, $3, $4, $5, $6, TRUE, TRUE, $7::json, NOW(), NOW())`,
+          [
+            userId,
+            workflowUserId,
+            workflowStepId,
+            step.channel,
+            delayMinutes,
+            String(templateId),
+            settings
+          ]
+        )
+      }
+
+      await client.query('COMMIT')
+      const data = await loadWorkflowUser(userId, workflowUserId)
+      return { data: data!, workflowUserId }
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
   }
 }

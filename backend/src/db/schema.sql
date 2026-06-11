@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS workflows (
   workflow_name TEXT NOT NULL,
   category TEXT,
   description TEXT,
+  owner_id INTEGER REFERENCES users (id) ON DELETE CASCADE,
+  source TEXT NOT NULL DEFAULT 'system',
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -118,6 +120,22 @@ CREATE INDEX IF NOT EXISTS idx_workflow_user_user_id ON workflow_user (user_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_step_user_workflow_user_id ON workflow_step_user (workflow_user_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_step_workflow_id ON workflow_step (workflow_id);
 CREATE INDEX IF NOT EXISTS idx_scheduler_event_month_day ON scheduler_event (month, day);
+CREATE INDEX IF NOT EXISTS idx_workflows_owner ON workflows (owner_id);
+
+CREATE TABLE IF NOT EXISTS ai_generation_log (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  prompt TEXT NOT NULL,
+  draft_json JSONB NOT NULL,
+  user_edits_json JSONB,
+  accepted BOOLEAN NOT NULL DEFAULT FALSE,
+  workflow_user_id INTEGER REFERENCES workflow_user (id) ON DELETE SET NULL,
+  inference_source TEXT NOT NULL DEFAULT 'mock',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_generation_log_user ON ai_generation_log (user_id);
+
 CREATE INDEX IF NOT EXISTS idx_content_template_owner ON content_template (owner_id);
 CREATE INDEX IF NOT EXISTS idx_contact_list_owner_id ON contact_list (owner_id);
 CREATE INDEX IF NOT EXISTS idx_contact_owner_id ON contact (owner_id);

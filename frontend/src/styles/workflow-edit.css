@@ -29,6 +29,13 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
+.workflow-modal-header__title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .workflow-modal-header__title {
   margin: 0;
   font-size: 1.25rem;

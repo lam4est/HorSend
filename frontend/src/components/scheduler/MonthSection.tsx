@@ -1,5 +1,5 @@
 import { CHANNEL_COLORS, CHANNEL_LIST } from '../../constants/campaignAutoScheduler'
-import { en, t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import type { SchedulerEventView, SchedulerMonthView } from '../../utils/schedulerCalendar'
 import ToggleButton from './ToggleButton'
 
@@ -10,11 +10,12 @@ type MonthSectionProps = {
 }
 
 export default function MonthSection ({ month, onEdit, onToggle }: MonthSectionProps) {
+  const { messages } = useI18n()
   return (
     <div className="month-section">
       <div className="month-header">
         <h5 className="month-header-title">
-          {(en.global.months as Record<string, string>)[month.month_key] ?? month.month_key}
+          {(messages.global.months as Record<string, string>)[month.month_key] ?? month.month_key}
         </h5>
       </div>
       <div className="month-events">
@@ -35,6 +36,7 @@ function EventCard ({
   onEdit: (event: SchedulerEventView) => void
   onToggle: (event: SchedulerEventView, enabled: boolean) => void
 }) {
+  const { t } = useI18n()
   const channelKey = event.channel === 'voice_sms' ? 'voice' : event.channel
   const channelMeta = CHANNEL_LIST.find((c) => c.key === channelKey) ?? CHANNEL_LIST[0]
   const colors = CHANNEL_COLORS[channelKey] ?? CHANNEL_COLORS.sms

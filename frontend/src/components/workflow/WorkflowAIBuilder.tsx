@@ -1,0 +1,640 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  api,
+  type AiHealthResponse,
+  type AiInferenceSource,
+  type AiWorkflowDraft,
+  type ContactList,
+  type WorkflowItem
+} from '../../api'
+import { CHANNEL_ICON_MAP, CHANNEL_NAME_MAP } from '../../constants/campaignWorkflow'
+import { useI18n, t } from '../../i18n'
+import Modal from '../common/Modal'
+import TemplatePreview from './TemplatePreview'
+import '../../styles/workflow-ai.css'
+
+const QUICK_PROMPTS = [
+  { labelKey: 'campaign_workflow.categories.onboarding', promptKey: 'campaign_workflow.ai.quick_onboarding' },
+  { labelKey: 'campaign_workflow.categories.abandoned_basket', promptKey: 'campaign_workflow.ai.quick_abandoned' },
+  { labelKey: 'campaign_workflow.categories.reactivation', promptKey: 'campaign_workflow.ai.quick_reactivation' },
+  { labelKey: 'campaign_workflow.ai.black_friday_label', promptKey: 'campaign_workflow.ai.quick_black_friday' }
+] as const
+
+type Step = AiWorkflowDraft['steps'][number]
+type GeneratePhase = 'check' | 'design' | 'finalize'
+type EngineTone = 'loading' | 'ready' | 'warn'
+
+type WorkflowAIBuilderProps = {
+  open: boolean
+  onClose: () => void
+  onCreated: (workflow: WorkflowItem) => void
+}
+
+type BuilderStep = 'describe' | 'preview' | 'confirm'
+
+function sourceLabel (source: AiInferenceSource): string {
+  return source === 'lora'
+    ? t('campaign_workflow.ai.source_lora')
+    : t('campaign_workflow.ai.source_rule_based')
+}
+
+function engineMessage (health: AiHealthResponse | null): string {
+  if (!health) return t('campaign_workflow.ai.generate_progress_check')
+  if (health.mock_fallback || !health.inference_available) {
+    return t('campaign_workflow.ai.engine_offline')
+  }
+  if (health.warmup_status === 'loading' || (health.adapters_available && !health.model_loaded)) {
+    return t('campaign_workflow.ai.engine_loading')
+  }
+  if (health.warmup_status === 'failed') {
+    return t('campaign_workflow.ai.engine_warmup_failed')
+  }
+  if (health.mode === 'lora' && health.model_loaded) {
+    return t('campaign_workflow.ai.engine_ready_lora')
+  }
+  return t('campaign_workflow.ai.engine_ready_rule_based')
+}
+
+function engineTone (health: AiHealthResponse | null): EngineTone {
+  if (!health) return 'loading'
+  if (health.mock_fallback || !health.inference_available || health.warmup_status === 'failed') {
+    return 'warn'
+  }
+  if (health.warmup_status === 'loading' || (health.adapters_available && !health.model_loaded)) {
+    return 'loading'
+  }
+  return 'ready'
+}
+
+function isEngineReady (health: AiHealthResponse): boolean {
+  if (health.mock_fallback || !health.inference_available) return true
+  if (health.warmup_status === 'loading') return false
+  if (health.adapters_available && !health.model_loaded && health.warmup_status !== 'failed') {
+    return false
+  }
+  return true
+}
+
+function generatePhaseLabel (phase: GeneratePhase): string {
+  if (phase === 'check') return t('campaign_workflow.ai.generate_progress_check')
+  if (phase === 'design') return t('campaign_workflow.ai.generate_progress_design')
+  return t('campaign_workflow.ai.generate_progress_finalize')
+}
+
+function recipientsLabel (
+  contactLists: ContactList[],
+  contactListId: number | null | undefined
+): string {
+  if (contactListId == null) return t('campaign_workflow.edit_modal.all_contacts')
+  const list = contactLists.find((item) => item.id === contactListId)
+  if (!list) return t('campaign_workflow.edit_modal.select_contact_list')
+  return `${list.name} (${list.contacts_count} ${t('campaign_workflow.edit_modal.contacts')})`
+}
+
+export default function WorkflowAIBuilder ({ open, onClose, onCreated }: WorkflowAIBuilderProps) {
+  const { t } = useI18n()
+  const [builderStep, setBuilderStep] = useState<BuilderStep>('describe')
+  const [prompt, setPrompt] = useState('')
+  const [locale, setLocale] = useState<'en' | 'vi'>('en')
+  const [busy, setBusy] = useState(false)
+  const [generatePhase, setGeneratePhase] = useState<GeneratePhase>('check')
+  const [error, setError] = useState<string | null>(null)
+  const [draftId, setDraftId] = useState<string | null>(null)
+  const [draft, setDraft] = useState<AiWorkflowDraft | null>(null)
+  const [warnings, setWarnings] = useState<string[]>([])
+  const [source, setSource] = useState<AiInferenceSource>('rule_based')
+  const [expandedStep, setExpandedStep] = useState(0)
+  const [engineHealth, setEngineHealth] = useState<AiHealthResponse | null>(null)
+  const [contactLists, setContactLists] = useState<ContactList[]>([])
+  const [useAllContacts, setUseAllContacts] = useState(true)
+  const [contactListId, setContactListId] = useState<number | null>(null)
+  const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const reset = useCallback(() => {
+    setBuilderStep('describe')
+    setPrompt('')
+    setError(null)
+    setDraftId(null)
+    setDraft(null)
+    setWarnings([])
+    setExpandedStep(0)
+    setGeneratePhase('check')
+    setUseAllContacts(true)
+    setContactListId(null)
+  }, [])
+
+  function syncDraftContactList (nextUseAll: boolean, nextListId: number | null) {
+    const id = nextUseAll ? null : nextListId
+    setDraft((current) => (current ? { ...current, contact_list_id: id } : current))
+  }
+
+  function handleClose () {
+    reset()
+    onClose()
+  }
+
+  useEffect(() => {
+    if (!open) return
+
+    let cancelled = false
+
+    async function pollHealth () {
+      try {
+        const health = await api.aiHealth()
+        if (cancelled) return
+        setEngineHealth(health)
+        if (!isEngineReady(health)) {
+          window.setTimeout(() => {
+            void pollHealth()
+          }, 2000)
+        }
+      } catch {
+        if (!cancelled) {
+          setEngineHealth({
+            ok: false,
+            inference_available: false,
+            mock_fallback: true,
+            mode: 'unavailable',
+            model_loaded: false,
+            warmup_status: 'failed',
+            adapters_available: false
+          })
+        }
+      }
+    }
+
+    void pollHealth()
+
+    void api
+      .contactLists()
+      .then((res) => {
+        if (!cancelled) setContactLists(res.items)
+      })
+      .catch(() => {
+        if (!cancelled) setContactLists([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [open])
+
+  useEffect(() => {
+    return () => {
+      if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
+    }
+  }, [])
+
+  const canGenerate =
+    prompt.trim().length >= 3 && (useAllContacts || contactListId != null)
+
+  async function handleGenerate () {
+    if (!canGenerate) {
+      if (!useAllContacts && contactListId == null) {
+        setError(t('campaign_workflow.ai.contact_list_required'))
+      }
+      return
+    }
+    setBusy(true)
+    setError(null)
+    setGeneratePhase('check')
+
+    if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
+    phaseTimerRef.current = window.setTimeout(() => {
+      setGeneratePhase('design')
+    }, 1200)
+    const finalizeTimer = window.setTimeout(() => {
+      setGeneratePhase('finalize')
+    }, 8000)
+
+    try {
+      const selectedContactListId = useAllContacts ? null : contactListId
+      const res = await api.aiGenerateWorkflow({
+        prompt: prompt.trim(),
+        locale,
+        contact_list_id: selectedContactListId
+      })
+      setDraft(res.workflow)
+      setDraftId(res.draft_id)
+      setWarnings(res.warnings)
+      setSource(res.source)
+      if (selectedContactListId != null) {
+        setUseAllContacts(false)
+        setContactListId(selectedContactListId)
+      } else {
+        setUseAllContacts(true)
+        setContactListId(null)
+      }
+      setBuilderStep('preview')
+      setExpandedStep(0)
+      void api.aiHealth().then(setEngineHealth).catch(() => {})
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('global.api_error'))
+    } finally {
+      window.clearTimeout(finalizeTimer)
+      if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
+      setBusy(false)
+      setGeneratePhase('check')
+    }
+  }
+
+  function updateStep (index: number, patch: Partial<Step>) {
+    if (!draft) return
+    const steps = draft.steps.map((s, i) => (i === index ? { ...s, ...patch } : s))
+    if (patch.template) {
+      steps[index] = {
+        ...steps[index]!,
+        template: { ...steps[index]!.template, ...patch.template }
+      }
+    }
+    setDraft({ ...draft, steps })
+  }
+
+  async function handleConfirm () {
+    if (!draft) return
+    if (!useAllContacts && draft.contact_list_id == null) {
+      setError(t('campaign_workflow.ai.contact_list_required'))
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await api.aiConfirmWorkflow({
+        prompt: prompt.trim(),
+        draft_id: draftId ?? undefined,
+        draft
+      })
+      if (draftId) {
+        void api.aiFeedback({ draft_id: draftId, user_edits: draft }).catch(() => {})
+      }
+      onCreated(res.workflow)
+      handleClose()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('global.api_error'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function delayLabel (step: Step): string {
+    if (step.delay_value === 0 && step.delay_unit === 'minute') {
+      return t('campaign_workflow.ai.immediate')
+    }
+    const unitKey =
+      step.delay_unit === 'day'
+        ? 'campaign_workflow.edit_modal.unit_day'
+        : step.delay_unit === 'hour'
+          ? 'campaign_workflow.edit_modal.unit_hour'
+          : 'campaign_workflow.edit_modal.unit_minute'
+    return `${step.delay_value} ${t(unitKey)}`
+  }
+
+  const engineClass = `workflow-ai__engine workflow-ai__engine--${engineTone(engineHealth)}`
+
+  return (
+    <Modal
+      open={open}
+      title={t('campaign_workflow.ai.title')}
+      onClose={handleClose}
+      wide
+      footer={
+        builderStep === 'describe' ? (
+          <>
+            <button type="button" className="enroll-btn enroll-btn--secondary" onClick={handleClose}>
+              {t('global.buttons.cancel')}
+            </button>
+            <button
+              type="button"
+              className="enroll-btn enroll-btn--primary"
+              disabled={busy || !canGenerate}
+              onClick={() => void handleGenerate()}
+            >
+              {busy ? t('campaign_workflow.ai.generating') : t('campaign_workflow.ai.generate')}
+            </button>
+          </>
+        ) : builderStep === 'preview' ? (
+          <>
+            <button
+              type="button"
+              className="enroll-btn enroll-btn--secondary"
+              onClick={() => setBuilderStep('describe')}
+            >
+              {t('campaign_workflow.ai.back')}
+            </button>
+            <button
+              type="button"
+              className="enroll-btn enroll-btn--primary"
+              disabled={!useAllContacts && draft?.contact_list_id == null}
+              onClick={() => {
+                if (!useAllContacts && draft?.contact_list_id == null) {
+                  setError(t('campaign_workflow.ai.contact_list_required'))
+                  return
+                }
+                setError(null)
+                setBuilderStep('confirm')
+              }}
+            >
+              {t('campaign_workflow.ai.continue')}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="enroll-btn enroll-btn--secondary"
+              onClick={() => setBuilderStep('preview')}
+            >
+              {t('campaign_workflow.ai.back')}
+            </button>
+            <button
+              type="button"
+              className="enroll-btn enroll-btn--primary"
+              disabled={busy}
+              onClick={() => void handleConfirm()}
+            >
+              {busy ? t('campaign_workflow.ai.creating') : t('campaign_workflow.ai.confirm_create')}
+            </button>
+          </>
+        )
+      }
+    >
+      <div className="workflow-ai">
+        <nav className="workflow-ai__steps" aria-label={t('campaign_workflow.ai.progress')}>
+          {(['describe', 'preview', 'confirm'] as const).map((step, i) => (
+            <span
+              key={step}
+              className={`workflow-ai__step-indicator${
+                builderStep === step ? ' workflow-ai__step-indicator--active' : ''
+              }${i < ['describe', 'preview', 'confirm'].indexOf(builderStep) ? ' workflow-ai__step-indicator--done' : ''}`}
+            >
+              {i + 1}. {t(`campaign_workflow.ai.step_${step}`)}
+            </span>
+          ))}
+        </nav>
+
+        {builderStep === 'describe' ? (
+          <div className={engineClass} role="status" aria-live="polite">
+            <span className="workflow-ai__engine-dot" aria-hidden="true" />
+            <span>{engineMessage(engineHealth)}</span>
+          </div>
+        ) : null}
+
+        {busy && builderStep === 'describe' ? (
+          <div className="workflow-ai__progress" aria-live="polite">
+            <p className="workflow-ai__progress-label">{generatePhaseLabel(generatePhase)}</p>
+            <div className="workflow-ai__progress-track">
+              <div className="workflow-ai__progress-bar" />
+            </div>
+          </div>
+        ) : null}
+
+        {error ? <p className="workflow-ai__error">{error}</p> : null}
+
+        {builderStep === 'describe' ? (
+          <div className="workflow-ai__describe">
+            <p className="workflow-ai__lead">{t('campaign_workflow.ai.lead')}</p>
+            <div className="workflow-ai__locale">
+              <label>
+                {t('campaign_workflow.ai.locale')}
+                <select value={locale} onChange={(e) => setLocale(e.target.value as 'en' | 'vi')}>
+                  <option value="en">English</option>
+                  <option value="vi">Tiếng Việt</option>
+                </select>
+              </label>
+            </div>
+            <div className="workflow-ai__recipients">
+              <span className="workflow-ai__recipients-label">
+                {t('campaign_workflow.edit_modal.recipients')}
+              </span>
+              <div className="edit-scheduler-modal__toggle-row">
+                <button
+                  type="button"
+                  className={`edit-scheduler-modal__toggle${useAllContacts ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    setUseAllContacts(true)
+                    setContactListId(null)
+                    syncDraftContactList(true, null)
+                  }}
+                >
+                  {t('campaign_workflow.edit_modal.all_contacts')}
+                </button>
+                <button
+                  type="button"
+                  className={`edit-scheduler-modal__toggle${!useAllContacts ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    setUseAllContacts(false)
+                    syncDraftContactList(false, contactListId)
+                  }}
+                >
+                  {t('campaign_workflow.edit_modal.my_contact_lists')}
+                </button>
+              </div>
+              {!useAllContacts ? (
+                <select
+                  className="workflow-ai__contact-select"
+                  value={contactListId ?? ''}
+                  onChange={(e) => {
+                    const nextId = e.target.value ? Number(e.target.value) : null
+                    setContactListId(nextId)
+                    syncDraftContactList(false, nextId)
+                  }}
+                >
+                  <option value="">{t('campaign_workflow.edit_modal.select_contact_list')}</option>
+                  {contactLists.map((list) => (
+                    <option key={list.id} value={list.id}>
+                      {list.name} ({list.contacts_count}{' '}
+                      {t('campaign_workflow.edit_modal.contacts')})
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+            </div>
+            <div className="workflow-ai__chips">
+              {QUICK_PROMPTS.map((chip) => (
+                <button
+                  key={chip.promptKey}
+                  type="button"
+                  className="workflow-ai__chip"
+                  onClick={() => setPrompt(t(chip.promptKey))}
+                >
+                  {t(chip.labelKey)}
+                </button>
+              ))}
+            </div>
+            <textarea
+              className="workflow-ai__prompt"
+              rows={5}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder={t('campaign_workflow.ai.prompt_placeholder')}
+            />
+          </div>
+        ) : null}
+
+        {builderStep === 'preview' && draft ? (
+          <div className="workflow-ai__preview">
+            <header className="workflow-ai__draft-header">
+              <h3>{draft.name}</h3>
+              <p>{draft.description}</p>
+              <div className="workflow-ai__meta">
+                <span className="workflow-ai__badge">
+                  {t('campaign_workflow.ai.source')}: {sourceLabel(source)}
+                </span>
+                <span className="workflow-ai__badge">
+                  {t('campaign_workflow.edit_modal.recipients')}:{' '}
+                  {recipientsLabel(contactLists, draft.contact_list_id)}
+                </span>
+              </div>
+            </header>
+            <div className="workflow-ai__recipients workflow-ai__recipients--compact">
+              <span className="workflow-ai__recipients-label">
+                {t('campaign_workflow.edit_modal.recipients')}
+              </span>
+              <div className="edit-scheduler-modal__toggle-row">
+                <button
+                  type="button"
+                  className={`edit-scheduler-modal__toggle${useAllContacts ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    setUseAllContacts(true)
+                    setContactListId(null)
+                    setDraft({ ...draft, contact_list_id: null })
+                  }}
+                >
+                  {t('campaign_workflow.edit_modal.all_contacts')}
+                </button>
+                <button
+                  type="button"
+                  className={`edit-scheduler-modal__toggle${!useAllContacts ? ' is-selected' : ''}`}
+                  onClick={() => setUseAllContacts(false)}
+                >
+                  {t('campaign_workflow.edit_modal.my_contact_lists')}
+                </button>
+              </div>
+              {!useAllContacts ? (
+                <select
+                  className="workflow-ai__contact-select"
+                  value={draft.contact_list_id ?? contactListId ?? ''}
+                  onChange={(e) => {
+                    const nextId = e.target.value ? Number(e.target.value) : null
+                    setContactListId(nextId)
+                    setDraft({ ...draft, contact_list_id: nextId })
+                  }}
+                >
+                  <option value="">{t('campaign_workflow.edit_modal.select_contact_list')}</option>
+                  {contactLists.map((list) => (
+                    <option key={list.id} value={list.id}>
+                      {list.name} ({list.contacts_count}{' '}
+                      {t('campaign_workflow.edit_modal.contacts')})
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+            </div>
+            {warnings.length > 0 ? (
+              <ul className="workflow-ai__warnings">
+                {warnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="workflow-ai__timeline">
+              {draft.steps.map((step, i) => (
+                <div
+                  key={i}
+                  className={`workflow-ai__step-card${expandedStep === i ? ' workflow-ai__step-card--open' : ''}`}
+                >
+                  <button
+                    type="button"
+                    className="workflow-ai__step-head"
+                    onClick={() => setExpandedStep(expandedStep === i ? -1 : i)}
+                  >
+                    <i className={CHANNEL_ICON_MAP[step.channel] ?? 'fas fa-circle'} aria-hidden="true" />
+                    <span>
+                      {CHANNEL_NAME_MAP[step.channel] ?? step.channel} — {delayLabel(step)}
+                    </span>
+                    {step.rationale ? (
+                      <span className="workflow-ai__rationale">{step.rationale}</span>
+                    ) : null}
+                  </button>
+                  {expandedStep === i ? (
+                    <div className="workflow-ai__step-body">
+                      {step.channel === 'email' ? (
+                        <label className="workflow-ai__field">
+                          {t('campaign_workflow.edit_modal.email_subject')}
+                          <input
+                            type="text"
+                            value={step.email_subject ?? step.template.subject}
+                            onChange={(e) =>
+                              updateStep(i, {
+                                email_subject: e.target.value,
+                                template: { ...step.template, subject: e.target.value }
+                              })
+                            }
+                          />
+                        </label>
+                      ) : null}
+                      <label className="workflow-ai__field">
+                        {t('campaign_workflow.ai.template_body')}
+                        <textarea
+                          rows={4}
+                          value={step.template.body}
+                          onChange={(e) =>
+                            updateStep(i, {
+                              template: { ...step.template, body: e.target.value }
+                            })
+                          }
+                        />
+                      </label>
+                      <TemplatePreview
+                        channel={step.channel}
+                        template={{
+                          id: `ai-${i}`,
+                          name: step.template.name,
+                          title: step.template.subject || step.template.name,
+                          body: step.template.body
+                        }}
+                        emailSubject={step.email_subject ?? step.template.subject}
+                        emailFromName={step.email_from_name}
+                        emailFromAddress={step.email_from_address}
+                        smsSenderId={step.sms_sender_id}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {builderStep === 'confirm' && draft ? (
+          <div className="workflow-ai__confirm">
+            <p>{t('campaign_workflow.ai.confirm_lead')}</p>
+            <dl className="workflow-ai__summary">
+              <div>
+                <dt>{t('campaign_workflow.edit_modal.workflow_name')}</dt>
+                <dd>{draft.name}</dd>
+              </div>
+              <div>
+                <dt>{t('campaign_workflow.edit_modal.description')}</dt>
+                <dd>{draft.description}</dd>
+              </div>
+              <div>
+                <dt>{t('campaign_workflow.steps', { count: draft.steps.length })}</dt>
+                <dd>
+                  {draft.steps
+                    .map((s) => `${CHANNEL_NAME_MAP[s.channel] ?? s.channel} (${delayLabel(s)})`)
+                    .join(' → ')}
+                </dd>
+              </div>
+              <div>
+                <dt>{t('campaign_workflow.edit_modal.recipients')}</dt>
+                <dd>{recipientsLabel(contactLists, draft.contact_list_id)}</dd>
+              </div>
+            </dl>
+            <p className="workflow-ai__note">{t('campaign_workflow.ai.inactive_note')}</p>
+          </div>
+        ) : null}
+      </div>
+    </Modal>
+  )
+}
