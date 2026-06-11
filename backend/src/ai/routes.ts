@@ -1,7 +1,10 @@
-import { randomUUID } from 'node:crypto'
 import type { Request, Response } from 'express'
 import { db } from '../store.js'
-import { generateWorkflowDraft } from './inferenceClient.js'
+import {
+  aiServiceFeedback,
+  aiServiceGenerate,
+  aiServiceMarkAccepted
+} from './aiServiceClient.js'
 import {
   aiConfirmRequestSchema,
   aiGenerateRequestSchema,
@@ -29,46 +32,23 @@ export async function handleAiGenerate (req: Request, res: Response, userId: num
     }
   }
 
-  const result = await generateWorkflowDraft(
+  const result = await aiServiceGenerate(userId, {
     prompt,
-    {
+    locale,
+    contact_list_id: contactListId,
+    context: {
       channels: [...VALID_CHANNELS],
       categories: [...VALID_CATEGORIES],
       contact_lists: contactLists.items
-    },
-    locale
-  )
+    }
+  })
 
-  const draft = {
-    ...result.draft,
-    contact_list_id: contactListId,
-    steps: result.draft.steps.map((step) => ({
-      ...step,
-      template: {
-        ...step.template,
-        body: sanitizeTemplateBody(step.channel, step.template.body)
-      }
-    }))
+  if (!result.ok) {
+    res.status(result.status).json(result.body)
+    return
   }
 
-  const validationWarnings = validateWorkflowDraft(draft)
-  const warnings = [...result.warnings, ...validationWarnings]
-  const draftId = randomUUID()
-
-  await db.logAiGeneration({
-    userId,
-    prompt,
-    draft,
-    inferenceSource: result.source,
-    draftId
-  })
-
-  res.json({
-    draft_id: draftId,
-    workflow: draft,
-    warnings,
-    source: result.source
-  })
+  res.json(result.data)
 }
 
 export async function handleAiConfirm (req: Request, res: Response, userId: number): Promise<void> {
@@ -98,16 +78,23 @@ export async function handleAiConfirm (req: Request, res: Response, userId: numb
   }
 
   if (draftId && prompt) {
-    await db.markAiGenerationAccepted(draftId, userId, result.workflowUserId!, sanitized)
-  } else if (prompt) {
-    await db.logAiGeneration({
-      userId,
-      prompt,
-      draft: sanitized,
-      inferenceSource: 'confirm',
-      accepted: true,
-      workflowUserId: result.workflowUserId
+    const markResult = await aiServiceMarkAccepted(userId, {
+      draft_id: draftId,
+      workflow_user_id: result.workflowUserId!,
+      user_edits: sanitized
     })
+    if (!markResult.ok) {
+      console.warn('[ai confirm] mark-accepted failed:', markResult.body)
+    }
+  } else if (prompt) {
+    const markResult = await aiServiceMarkAccepted(userId, {
+      workflow_user_id: result.workflowUserId!,
+      user_edits: sanitized,
+      prompt
+    })
+    if (!markResult.ok) {
+      console.warn('[ai confirm] mark-accepted failed:', markResult.body)
+    }
   }
 
   res.status(201).json({
@@ -123,9 +110,10 @@ export async function handleAiFeedback (req: Request, res: Response, userId: num
     res.status(400).json({ error: 'draft_id and user_edits are required' })
     return
   }
-  const ok = await db.updateAiGenerationEdits(draftId, userId, userEdits)
-  if (!ok) {
-    res.status(404).json({ error: 'Generation log not found' })
+
+  const result = await aiServiceFeedback(userId, draftId, userEdits)
+  if (!result.ok) {
+    res.status(result.status).json(result.body)
     return
   }
   res.json({ ok: true })
