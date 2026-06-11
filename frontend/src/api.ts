@@ -83,11 +83,23 @@ export type AiWorkflowDraft = {
   steps: AiStepDraft[]
 }
 
+export type AiInferenceSource = 'lora' | 'rule_based'
+
 export type AiGenerateResponse = {
   draft_id: string
   workflow: AiWorkflowDraft
   warnings: string[]
-  source: string
+  source: AiInferenceSource
+}
+
+export type AiHealthResponse = {
+  ok: boolean
+  inference_available: boolean
+  mock_fallback: boolean
+  mode: AiInferenceSource | 'unavailable'
+  model_loaded: boolean
+  warmup_status: 'idle' | 'loading' | 'ready' | 'skipped' | 'failed'
+  adapters_available: boolean
 }
 
 export type WorkflowDetail = {
@@ -148,10 +160,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body)
     }),
-  aiHealth: () =>
-    request<{ ok: boolean; inference_available: boolean; mock_fallback: boolean }>(
-      '/api/workflows/ai/health'
-    ),
+  aiHealth: () => request<AiHealthResponse>('/api/workflows/ai/health'),
   templates: (channel: string) =>
     request<{ items: MessageTemplate[] }>(`/api/templates?channel=${encodeURIComponent(channel)}`),
   contactLists: () =>

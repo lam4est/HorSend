@@ -47,11 +47,14 @@ docker-compose.local.yml
 ml/adapters/*
 !ml/adapters/.gitkeep
 
-# Python ML env & bytecode
-.venv  
+# Python ML env & bytecode (incl. symlink to external venv on another partition)
+.venv
+ml/.venv
 ml/.venv/
+ml/.venv.light/
 venv/
-.venv/
+**/.venv/
+**/.venv.light/
 ml/**/__pycache__/
 __pycache__/
 *.pyc

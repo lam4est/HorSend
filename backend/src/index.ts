@@ -22,7 +22,7 @@ import {
   requeueStale
 } from './n8n/sendQueue.js'
 import { handleAiConfirm, handleAiFeedback, handleAiGenerate } from './ai/routes.js'
-import { checkInferenceHealth } from './ai/inferenceClient.js'
+import { getInferenceHealth } from './ai/inferenceClient.js'
 import { db } from './store.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -132,8 +132,16 @@ app.post('/api/workflow-step-users/:id/confirm', asyncHandler(async (req, res) =
 }))
 
 app.get('/api/workflows/ai/health', asyncHandler(async (_req, res) => {
-  const inference = await checkInferenceHealth()
-  res.json({ ok: true, inference_available: inference, mock_fallback: !inference })
+  const health = await getInferenceHealth()
+  res.json({
+    ok: true,
+    inference_available: health.available,
+    mock_fallback: health.mock_fallback,
+    mode: health.mode,
+    model_loaded: health.model_loaded,
+    warmup_status: health.warmup_status,
+    adapters_available: health.adapters_available
+  })
 }))
 
 app.post('/api/workflows/ai/generate', asyncHandler(async (req, res) => {

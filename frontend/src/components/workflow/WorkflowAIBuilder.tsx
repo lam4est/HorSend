@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import { api, type AiWorkflowDraft, type WorkflowItem } from '../../api'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { api, type AiHealthResponse, type AiInferenceSource, type AiWorkflowDraft, type WorkflowItem } from '../../api'
 import { CHANNEL_ICON_MAP, CHANNEL_NAME_MAP } from '../../constants/campaignWorkflow'
 import { t } from '../../i18n/en'
 import Modal from '../common/Modal'
@@ -14,6 +14,8 @@ const QUICK_PROMPTS = [
 ] as const
 
 type Step = AiWorkflowDraft['steps'][number]
+type GeneratePhase = 'check' | 'design' | 'finalize'
+type EngineTone = 'loading' | 'ready' | 'warn'
 
 type WorkflowAIBuilderProps = {
   open: boolean
@@ -23,17 +25,69 @@ type WorkflowAIBuilderProps = {
 
 type BuilderStep = 'describe' | 'preview' | 'confirm'
 
+function sourceLabel (source: AiInferenceSource): string {
+  return source === 'lora'
+    ? t('campaign_workflow.ai.source_lora')
+    : t('campaign_workflow.ai.source_rule_based')
+}
+
+function engineMessage (health: AiHealthResponse | null): string {
+  if (!health) return t('campaign_workflow.ai.generate_progress_check')
+  if (health.mock_fallback || !health.inference_available) {
+    return t('campaign_workflow.ai.engine_offline')
+  }
+  if (health.warmup_status === 'loading' || (health.adapters_available && !health.model_loaded)) {
+    return t('campaign_workflow.ai.engine_loading')
+  }
+  if (health.warmup_status === 'failed') {
+    return t('campaign_workflow.ai.engine_warmup_failed')
+  }
+  if (health.mode === 'lora' && health.model_loaded) {
+    return t('campaign_workflow.ai.engine_ready_lora')
+  }
+  return t('campaign_workflow.ai.engine_ready_rule_based')
+}
+
+function engineTone (health: AiHealthResponse | null): EngineTone {
+  if (!health) return 'loading'
+  if (health.mock_fallback || !health.inference_available || health.warmup_status === 'failed') {
+    return 'warn'
+  }
+  if (health.warmup_status === 'loading' || (health.adapters_available && !health.model_loaded)) {
+    return 'loading'
+  }
+  return 'ready'
+}
+
+function isEngineReady (health: AiHealthResponse): boolean {
+  if (health.mock_fallback || !health.inference_available) return true
+  if (health.warmup_status === 'loading') return false
+  if (health.adapters_available && !health.model_loaded && health.warmup_status !== 'failed') {
+    return false
+  }
+  return true
+}
+
+function generatePhaseLabel (phase: GeneratePhase): string {
+  if (phase === 'check') return t('campaign_workflow.ai.generate_progress_check')
+  if (phase === 'design') return t('campaign_workflow.ai.generate_progress_design')
+  return t('campaign_workflow.ai.generate_progress_finalize')
+}
+
 export default function WorkflowAIBuilder ({ open, onClose, onCreated }: WorkflowAIBuilderProps) {
   const [builderStep, setBuilderStep] = useState<BuilderStep>('describe')
   const [prompt, setPrompt] = useState('')
   const [locale, setLocale] = useState<'en' | 'vi'>('en')
   const [busy, setBusy] = useState(false)
+  const [generatePhase, setGeneratePhase] = useState<GeneratePhase>('check')
   const [error, setError] = useState<string | null>(null)
   const [draftId, setDraftId] = useState<string | null>(null)
   const [draft, setDraft] = useState<AiWorkflowDraft | null>(null)
   const [warnings, setWarnings] = useState<string[]>([])
-  const [source, setSource] = useState<string>('mock')
+  const [source, setSource] = useState<AiInferenceSource>('rule_based')
   const [expandedStep, setExpandedStep] = useState(0)
+  const [engineHealth, setEngineHealth] = useState<AiHealthResponse | null>(null)
+  const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const reset = useCallback(() => {
     setBuilderStep('describe')
@@ -43,6 +97,7 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
     setDraft(null)
     setWarnings([])
     setExpandedStep(0)
+    setGeneratePhase('check')
   }, [])
 
   function handleClose () {
@@ -50,10 +105,63 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
     onClose()
   }
 
+  useEffect(() => {
+    if (!open) return
+
+    let cancelled = false
+
+    async function pollHealth () {
+      try {
+        const health = await api.aiHealth()
+        if (cancelled) return
+        setEngineHealth(health)
+        if (!isEngineReady(health)) {
+          window.setTimeout(() => {
+            void pollHealth()
+          }, 2000)
+        }
+      } catch {
+        if (!cancelled) {
+          setEngineHealth({
+            ok: false,
+            inference_available: false,
+            mock_fallback: true,
+            mode: 'unavailable',
+            model_loaded: false,
+            warmup_status: 'failed',
+            adapters_available: false
+          })
+        }
+      }
+    }
+
+    void pollHealth()
+
+    return () => {
+      cancelled = true
+    }
+  }, [open])
+
+  useEffect(() => {
+    return () => {
+      if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
+    }
+  }, [])
+
   async function handleGenerate () {
     if (prompt.trim().length < 3) return
     setBusy(true)
     setError(null)
+    setGeneratePhase('check')
+
+    if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
+    phaseTimerRef.current = window.setTimeout(() => {
+      setGeneratePhase('design')
+    }, 1200)
+    const finalizeTimer = window.setTimeout(() => {
+      setGeneratePhase('finalize')
+    }, 8000)
+
     try {
       const res = await api.aiGenerateWorkflow({ prompt: prompt.trim(), locale })
       setDraft(res.workflow)
@@ -62,10 +170,14 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
       setSource(res.source)
       setBuilderStep('preview')
       setExpandedStep(0)
+      void api.aiHealth().then(setEngineHealth).catch(() => {})
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('global.api_error'))
     } finally {
+      window.clearTimeout(finalizeTimer)
+      if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
       setBusy(false)
+      setGeneratePhase('check')
     }
   }
 
@@ -115,6 +227,8 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
           : 'campaign_workflow.edit_modal.unit_minute'
     return `${step.delay_value} ${t(unitKey)}`
   }
+
+  const engineClass = `workflow-ai__engine workflow-ai__engine--${engineTone(engineHealth)}`
 
   return (
     <Modal
@@ -189,6 +303,22 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
           ))}
         </nav>
 
+        {builderStep === 'describe' ? (
+          <div className={engineClass} role="status" aria-live="polite">
+            <span className="workflow-ai__engine-dot" aria-hidden="true" />
+            <span>{engineMessage(engineHealth)}</span>
+          </div>
+        ) : null}
+
+        {busy && builderStep === 'describe' ? (
+          <div className="workflow-ai__progress" aria-live="polite">
+            <p className="workflow-ai__progress-label">{generatePhaseLabel(generatePhase)}</p>
+            <div className="workflow-ai__progress-track">
+              <div className="workflow-ai__progress-bar" />
+            </div>
+          </div>
+        ) : null}
+
         {error ? <p className="workflow-ai__error">{error}</p> : null}
 
         {builderStep === 'describe' ? (
@@ -231,7 +361,7 @@ export default function WorkflowAIBuilder ({ open, onClose, onCreated }: Workflo
               <h3>{draft.name}</h3>
               <p>{draft.description}</p>
               <span className="workflow-ai__badge">
-                {t('campaign_workflow.ai.source')}: {source}
+                {t('campaign_workflow.ai.source')}: {sourceLabel(source)}
               </span>
             </header>
             {warnings.length > 0 ? (

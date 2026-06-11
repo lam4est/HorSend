@@ -36,6 +36,10 @@ def adapters_available() -> bool:
     return WORKFLOW_ADAPTER.exists() and any(WORKFLOW_ADAPTER.iterdir())
 
 
+def is_model_loaded() -> bool:
+    return _workflow_adapter_loaded
+
+
 def template_adapter_available() -> bool:
     return TEMPLATE_ADAPTER.exists() and any(TEMPLATE_ADAPTER.iterdir())
 

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from contextlib import asynccontextmanager
+from typing import Any, Literal
 
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
@@ -12,13 +13,45 @@ from .model_loader import (
     enrich_templates,
     generate_template_with_model,
     generate_with_model,
+    is_model_loaded,
+    load_model,
     rule_based_template,
     rule_based_workflow,
     template_adapter_available,
 )
 from .workflow_expand import expand_workflow
 
-app = FastAPI(title="Campaign Workflow ML Inference", version="1.0.0")
+WarmupStatus = Literal["idle", "loading", "ready", "skipped", "failed"]
+_warmup_status: WarmupStatus = "idle"
+
+
+def warmup_status() -> WarmupStatus:
+    return _warmup_status
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    global _warmup_status
+    if adapters_available():
+        _warmup_status = "loading"
+        print("[inference] Warming up LoRA model…")
+        try:
+            ok = load_model()
+            _warmup_status = "ready" if ok else "failed"
+            if ok:
+                print("[inference] Model ready.")
+            else:
+                print("[inference] Warmup failed — rule-based fallback will be used.")
+        except Exception as exc:
+            _warmup_status = "failed"
+            print(f"[inference] Warmup error: {exc}")
+    else:
+        _warmup_status = "skipped"
+        print("[inference] No adapters found — rule-based mode only.")
+    yield
+
+
+app = FastAPI(title="Campaign Workflow ML Inference", version="1.0.0", lifespan=lifespan)
 
 
 class GenerateWorkflowRequest(BaseModel):
@@ -39,11 +72,18 @@ class GenerateTemplateRequest(BaseModel):
 def health() -> dict[str, Any]:
     wf = adapters_available()
     tpl = template_adapter_available()
-    mode = "lora" if wf else "rule_based"
+    loaded = is_model_loaded()
+    status = warmup_status()
+    if wf and loaded:
+        mode = "lora"
+    else:
+        mode = "rule_based"
     return {
         "ok": True,
         "adapters_available": wf,
         "template_adapter_available": tpl,
+        "model_loaded": loaded,
+        "warmup_status": status,
         "mode": mode,
     }
 
