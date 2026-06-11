@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import type { WorkflowStepForm } from '../../utils/workflowStep'
 import WorkflowStepItem from './WorkflowStepItem'
 
@@ -21,6 +21,7 @@ export default function WorkflowSteps ({
   onStepChange,
   onToggleEnabled
 }: WorkflowStepsProps) {
+  const { t } = useI18n()
   const [templatesByChannel, setTemplatesByChannel] = useState<Record<string, Awaited<ReturnType<typeof api.templates>>['items']>>({})
   const channelKey = [...new Set(steps.map((s) => s.channel))].sort().join(',')
 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CHANNELS } from '../../constants/channels'
 import { CHANNEL_ICON_MAP, CHANNEL_NAME_MAP } from '../../constants/campaignWorkflow'
 import type { MessageTemplate } from '../../api'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import {
   applyDelayParts,
   getDelayBadge,
@@ -29,6 +29,7 @@ export default function WorkflowStepItem ({
   onStepChange,
   onToggleEnabled
 }: WorkflowStepItemProps) {
+  const { t } = useI18n()
   const [templateError, setTemplateError] = useState<string | null>(null)
   const channelIcon = CHANNEL_ICON_MAP[step.channel] ?? 'fas fa-circle'
   const channelClass = step.channel === 'voice_sms' ? 'voice' : step.channel

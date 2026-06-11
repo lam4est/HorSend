@@ -1,4 +1,4 @@
-import { t } from '../../i18n/en'
+import { useI18n } from '../../i18n'
 import { useGsapHeroImage } from '../../hooks/useGsapReveal'
 
 type WorkflowHeroProps = {
@@ -10,6 +10,7 @@ const HERO_IMAGE =
   'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=960&h=720&fit=crop&q=80'
 
 export default function WorkflowHero ({ onAdd, onCreateWithAi }: WorkflowHeroProps) {
+  const { t } = useI18n()
   const sectionRef = useGsapHeroImage('.workflow-hero__visual-img')
 
   return (

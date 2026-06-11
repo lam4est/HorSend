@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, type CatalogItem, type WorkflowItem } from '../../api'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import ApiAlert from '../common/ApiAlert'
 import Modal from '../common/Modal'
 import WorkflowFilters, { type WorkflowFiltersState } from './WorkflowFilters'
@@ -18,6 +18,7 @@ type WorkflowListProps = {
 }
 
 export default function WorkflowList ({ enrollSignal = 0 }: WorkflowListProps) {
+  const { t } = useI18n()
   const [filters, setFilters] = useState<WorkflowFiltersState>({ search: '', category: '' })
   const [workflows, setWorkflows] = useState<WorkflowItem[]>([])
   const [catalog, setCatalog] = useState<CatalogItem[]>([])

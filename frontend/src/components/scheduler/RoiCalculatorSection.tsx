@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CHANNEL_COLORS, CHANNEL_LIST, COST_PER_MSG } from '../../constants/campaignAutoScheduler'
 import { CHANNELS } from '../../constants/channels'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import type { SchedulerEventView } from '../../utils/schedulerCalendar'
 
 type RoiCalculatorSectionProps = {
@@ -9,6 +9,7 @@ type RoiCalculatorSectionProps = {
 }
 
 export default function RoiCalculatorSection ({ activeEvents }: RoiCalculatorSectionProps) {
+  const { t } = useI18n()
   const [conversionRates, setConversionRates] = useState({
     sms: 0,
     email: 0,

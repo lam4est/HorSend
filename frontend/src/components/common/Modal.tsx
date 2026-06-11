@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 type ModalProps = {
   open: boolean
@@ -12,7 +13,7 @@ type ModalProps = {
 export default function Modal ({ open, title, onClose, children, footer, wide }: ModalProps) {
   if (!open) return null
 
-  return (
+  return createPortal(
     <div className="modal-overlay" role="presentation" onClick={onClose}>
       <div
         className={`modal-panel${wide ? ' modal-panel--wide' : ''}`}
@@ -30,8 +31,9 @@ export default function Modal ({ open, title, onClose, children, footer, wide }:
           </button>
         </div>
         <div className="modal-body">{children}</div>
-        {footer && <div className="modal-footer">{footer}</div>}
+        {footer ? <div className="modal-footer">{footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

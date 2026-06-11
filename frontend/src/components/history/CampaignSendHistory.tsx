@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, type SendHistoryBatch, type SendHistoryResponse } from '../../api'
 import ApiAlert from '../common/ApiAlert'
 import { useGsapReveal } from '../../hooks/useGsapReveal'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 
 type SourceFilter = 'all' | 'workflow' | 'scheduler'
 type StatusFilter = 'all' | 'sent' | 'failed' | 'pending'
@@ -20,9 +20,9 @@ function formatDateTime (iso: string | null): string {
   })
 }
 
-function statusLabel (status: string): string {
+function statusLabel (status: string, translate: (path: string) => string): string {
   const key = `send_history.status_${status}` as const
-  const translated = t(key)
+  const translated = translate(key)
   return translated === key ? status : translated
 }
 
@@ -33,13 +33,17 @@ function statusClass (status: string): string {
   return 'history-status history-status--pending'
 }
 
-function sourceLabel (source: SendHistoryBatch['source']): string {
+function sourceLabel (
+  source: SendHistoryBatch['source'],
+  translate: (path: string) => string
+): string {
   return source === 'workflow'
-    ? t('send_history.source_workflow')
-    : t('send_history.source_scheduler')
+    ? translate('send_history.source_workflow')
+    : translate('send_history.source_scheduler')
 }
 
 function HistoryStats ({ summary }: { summary: SendHistoryResponse['summary'] }) {
+  const { t } = useI18n()
   const ref = useGsapReveal<HTMLDivElement>()
   const cells = [
     { key: 'batches', value: summary.batches, label: t('send_history.stats.batches'), span: 'bento-featured' },
@@ -62,6 +66,7 @@ function HistoryStats ({ summary }: { summary: SendHistoryResponse['summary'] })
 }
 
 function BatchCard ({ batch }: { batch: SendHistoryBatch }) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
 
   return (
@@ -71,7 +76,7 @@ function BatchCard ({ batch }: { batch: SendHistoryBatch }) {
           <div className="history-batch__title-row">
             <h3 className="history-batch__title">{batch.campaign_name}</h3>
             <span className={`history-batch__source history-batch__source--${batch.source}`}>
-              {sourceLabel(batch.source)}
+              {sourceLabel(batch.source, t)}
             </span>
           </div>
           <dl className="history-batch__meta">
@@ -153,7 +158,7 @@ function BatchCard ({ batch }: { batch: SendHistoryBatch }) {
                       <td>{row.contact_name?.trim() || '—'}</td>
                       <td className="history-table__mono">{row.recipient}</td>
                       <td>
-                        <span className={statusClass(row.status)}>{statusLabel(row.status)}</span>
+                        <span className={statusClass(row.status)}>{statusLabel(row.status, t)}</span>
                       </td>
                       <td className="tabular-nums">{formatDateTime(row.sent_at)}</td>
                       <td className="tabular-nums">{row.attempts}</td>
@@ -180,6 +185,7 @@ function downloadBlob (blob: Blob, filename: string) {
 }
 
 export default function CampaignSendHistory () {
+  const { t } = useI18n()
   const heroRef = useGsapReveal<HTMLDivElement>()
   const [data, setData] = useState<SendHistoryResponse | null>(null)
   const [loading, setLoading] = useState(true)

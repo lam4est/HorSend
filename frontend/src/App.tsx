@@ -4,6 +4,7 @@ import CampaignAutoScheduler from './components/scheduler/CampaignAutoScheduler'
 import AdminSidebar from './components/layout/AdminSidebar'
 import CrmTopNav from './components/layout/CrmTopNav'
 import WorkflowList from './components/workflow/WorkflowList'
+import { useI18n } from './i18n'
 import type { SidebarFeatureKey } from './types/sidebar'
 
 type FeatureTab = 'workflow' | 'auto-schedule' | 'send-history'
@@ -16,6 +17,7 @@ function readTabFromQuery (): FeatureTab | null {
 }
 
 export default function App () {
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<FeatureTab>(() => readTabFromQuery() ?? 'workflow')
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false)
   const [enrollSignal, setEnrollSignal] = useState(0)
@@ -29,10 +31,10 @@ export default function App () {
 
   const crmPageTitle =
     activeTab === 'workflow'
-      ? 'Campaign Workflow'
+      ? t('layout.page_titles.workflow')
       : activeTab === 'auto-schedule'
-        ? 'Campaign Auto Scheduler'
-        : 'Send History'
+        ? t('layout.page_titles.auto_schedule')
+        : t('layout.page_titles.send_history')
 
   useEffect(() => {
     const url = new URL(window.location.href)
@@ -90,14 +92,14 @@ export default function App () {
             <button
               type="button"
               className="menu-toggle"
-              aria-label="Open menu"
+              aria-label={t('layout.open_menu')}
               onClick={() => setSidebarMobileOpen((v) => !v)}
             >
               <i className="fa-solid fa-bars" aria-hidden="true" />
             </button>
             <div className="app-topbar__titles">
-              <h1 className="app-title">Campaign Manager</h1>
-              <p className="app-subtitle">Workflow, auto schedule, and campaign tools</p>
+              <h1 className="app-title">{t('layout.app_title')}</h1>
+              <p className="app-subtitle">{t('layout.app_subtitle')}</p>
             </div>
           </header>
 

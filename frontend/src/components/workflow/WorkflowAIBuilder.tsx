@@ -8,7 +8,7 @@ import {
   type WorkflowItem
 } from '../../api'
 import { CHANNEL_ICON_MAP, CHANNEL_NAME_MAP } from '../../constants/campaignWorkflow'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import Modal from '../common/Modal'
 import TemplatePreview from './TemplatePreview'
 import '../../styles/workflow-ai.css'
@@ -92,6 +92,7 @@ function recipientsLabel (
 }
 
 export default function WorkflowAIBuilder ({ open, onClose, onCreated }: WorkflowAIBuilderProps) {
+  const { t } = useI18n()
   const [builderStep, setBuilderStep] = useState<BuilderStep>('describe')
   const [prompt, setPrompt] = useState('')
   const [locale, setLocale] = useState<'en' | 'vi'>('en')

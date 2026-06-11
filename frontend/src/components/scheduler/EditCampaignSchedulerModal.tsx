@@ -6,7 +6,7 @@ import {
 } from '../../constants/campaignAutoScheduler'
 import { CHANNELS } from '../../constants/channels'
 import { api, type ContactList, type MessageTemplate } from '../../api'
-import { en, t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import type { SchedulerEventView } from '../../utils/schedulerCalendar'
 import { computeSchedulerSendDate, formatSchedulerSendDate } from '../../utils/schedulerSendDate'
 import Modal from '../common/Modal'
@@ -35,6 +35,7 @@ export default function EditCampaignSchedulerModal ({
   onClose,
   onSaved
 }: EditCampaignSchedulerModalProps) {
+  const { t, messages } = useI18n()
   const [channel, setChannel] = useState<string>(CHANNELS.SMS)
   const [templateId, setTemplateId] = useState<string | null>(null)
   const [useAllContacts, setUseAllContacts] = useState(true)
@@ -85,13 +86,13 @@ export default function EditCampaignSchedulerModal ({
     if (!sendAt) return null
     const { date, time } = formatSchedulerSendDate(sendAt)
     return t('campaign_auto_scheduler.edit_modal.send_date_preview', { date, time })
-  }, [event, daysBefore, hour, minute])
+  }, [event, daysBefore, hour, minute, t])
 
   const modalTitle = useMemo(() => {
     if (!event) return t('campaign_auto_scheduler.edit_modal.title')
     const month =
       event.month_key != null
-        ? (en.global.months as Record<string, string>)[event.month_key] ?? event.month_key
+        ? (messages.global.months as Record<string, string>)[event.month_key] ?? event.month_key
         : ''
     const day = String(event.day).padStart(2, '0')
     const name =
@@ -100,7 +101,7 @@ export default function EditCampaignSchedulerModal ({
         : event.title
     if (name && month) return `${name} - ${month} ${day}`
     return t('campaign_auto_scheduler.edit_modal.title')
-  }, [event])
+  }, [event, messages, t])
 
   function save () {
     if (!canSave) return

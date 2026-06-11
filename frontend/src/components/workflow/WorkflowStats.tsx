@@ -1,5 +1,5 @@
 import { useGsapReveal } from '../../hooks/useGsapReveal'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 
 type WorkflowStatsProps = {
   totalWorkflows: number
@@ -9,6 +9,7 @@ type WorkflowStatsProps = {
 }
 
 export default function WorkflowStats (props: WorkflowStatsProps) {
+  const { t } = useI18n()
   const ref = useGsapReveal<HTMLDivElement>()
 
   const cells = [

@@ -1,7 +1,7 @@
 import { memo, useEffect, useState } from 'react'
 import type { WorkflowItem } from '../../api'
 import { CHANNEL_ICON_MAP } from '../../constants/campaignWorkflow'
-import { en, t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import WorkflowEditModal, { type WorkflowEditData } from './WorkflowEditModal'
 
 type WorkflowCardProps = {
@@ -21,13 +21,14 @@ function WorkflowCard ({
   onSave,
   onEditClosed
 }: WorkflowCardProps) {
+  const { t, messages } = useI18n()
   const [editOpen, setEditOpen] = useState(false)
   const [editWorkflow, setEditWorkflow] = useState<WorkflowItem | null>(null)
   const [checked, setChecked] = useState(workflow.is_active)
   const hasDescription = Boolean(workflow.description?.trim())
   const isAiCreated = workflow.source === 'ai'
   const categoryLabel =
-    (en.campaign_workflow.categories as Record<string, string>)[workflow.category] ??
+    (messages.campaign_workflow.categories as Record<string, string>)[workflow.category] ??
     workflow.category
 
   useEffect(() => {

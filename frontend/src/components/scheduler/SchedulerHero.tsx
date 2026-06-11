@@ -1,10 +1,11 @@
 import { useGsapHeroImage } from '../../hooks/useGsapReveal'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 
 const HERO_IMAGE =
   'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=840&h=630&fit=crop&q=80'
 
 export default function SchedulerHero () {
+  const { t } = useI18n()
   const sectionRef = useGsapHeroImage('.scheduler-hero__img')
 
   return (

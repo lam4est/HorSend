@@ -1,4 +1,38 @@
 export const en = {
+  layout: {
+    app_title: 'Campaign Manager',
+    app_subtitle: 'Workflow, auto schedule, and campaign tools',
+    open_menu: 'Open menu',
+    create_campaign: 'Create campaign',
+    available_credit: 'Available credit : {amount} SMS',
+    sms_credit_balance: 'SMS credit balance',
+    language: 'Language',
+    page_titles: {
+      workflow: 'Campaign Workflow',
+      auto_schedule: 'Campaign Auto Scheduler',
+      send_history: 'Send History'
+    },
+    sidebar: {
+      new_campaign: 'New campaign',
+      contacts: 'Contacts',
+      conversations: 'Conversations',
+      order: 'Order',
+      ai_automation: 'AI & automation',
+      auto_schedule: 'Campaign Auto Scheduler',
+      workflow: 'Campaign Workflow',
+      send_history: 'Send History',
+      marketing_tools: 'Marketing Tools',
+      inbox: 'Inbox',
+      virtual_numbers: 'My virtual numbers',
+      reporting: 'Reporting',
+      multichannel: 'Multichannel',
+      api_integrations: 'API & Integrations',
+      sub_accounts: 'Sub-accounts',
+      email_management: 'Email Management',
+      live_chat: 'Live Chat',
+      addons: 'Add-ons'
+    }
+  },
   global: {
     buttons: { cancel: 'Cancel', save: 'Save' },
     loading: 'Loading…',
@@ -294,20 +328,9 @@ export const en = {
   }
 } as const
 
-export function t (
-  path: string,
-  vars?: Record<string, string | number>
-): string {
-  const parts = path.split('.')
-  let cur: unknown = en
-  for (const p of parts) {
-    cur = (cur as Record<string, unknown>)?.[p]
-  }
-  let out = typeof cur === 'string' ? cur : path
-  if (vars) {
-    for (const [k, v] of Object.entries(vars)) {
-      out = out.replace(`{${k}}`, String(v))
-    }
-  }
-  return out
+type DeepStringMap<T> = {
+  [K in keyof T]: T[K] extends string ? string : DeepStringMap<T[K]>
 }
+
+export type Messages = DeepStringMap<typeof en>
+export type Locale = 'en' | 'vi'

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { api, type ContactList, type WorkflowDetail, type WorkflowItem } from '../../api'
 import { CHANNELS } from '../../constants/channels'
 import { DEFAULT_DELAY_UNIT, DEFAULT_DELAY_VALUE } from '../../constants/campaignWorkflow'
-import { t } from '../../i18n/en'
+import { useI18n, t } from '../../i18n'
 import {
   convertMinutesToDelayUnit,
   convertToMinutes,
@@ -105,6 +106,7 @@ export default function WorkflowEditModal ({
   onSave,
   onClosed
 }: WorkflowEditModalProps) {
+  const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [expandedStepLocalId, setExpandedStepLocalId] = useState<string | null>(null)
   const [contactLists, setContactLists] = useState<ContactList[]>([])
@@ -235,7 +237,7 @@ export default function WorkflowEditModal ({
 
   const showInitialLoading = loading && !data
 
-  return (
+  return createPortal(
     <div className="workflow-edit-modal-overlay" role="presentation" onClick={() => void close()}>
       <div
         className="workflow-edit-modal"
@@ -363,7 +365,8 @@ export default function WorkflowEditModal ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

@@ -1,4 +1,4 @@
-import { t } from '../../i18n/en'
+import { useI18n } from '../../i18n'
 
 const CATEGORIES = [
   'activation',
@@ -19,6 +19,7 @@ type WorkflowFiltersProps = {
 }
 
 export default function WorkflowFilters ({ value, onChange }: WorkflowFiltersProps) {
+  const { t } = useI18n()
   return (
     <div className="workflow-filters">
       <div className="search-box">
